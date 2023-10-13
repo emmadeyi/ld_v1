@@ -8,12 +8,20 @@ from passlib.context import CryptContext
 # import classes
 from DeviceManager import DeviceManager
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
+import os
+# from dotenv import load_dotenv
 
 sqlite_db_file = "device_data.db"
 device_stats_file = "device_stats.json"
 passcode_file = "passcode.txt"
 api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
 authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
+
+# sqlite_db_file = os.environ.get('SQLITE_DB_FILE')
+# device_stats_file = os.environ.get('DEVICE_STATS_FILE')
+# passcode_file = os.environ.get('PASSCODE_FILE')
+# api_endpoint = os.environ.get('API_ENDPOINT')
+# authorization_token = os.environ.get('AUHTORIZATION_TOKEN')
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
