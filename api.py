@@ -395,10 +395,10 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
 stop_api_request = asyncio.Event()
 # stop_api_request = False
 sqlite_db_file = "device_data.db"
-device_stats_file = "device_stats_file.json"
+device_stats_file = "device_stats.json"
 passcode_file = "passcode.txt"
 api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
-authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
+authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
 
 @app.get("/device_request/{action}")
 async def start_api_call(action: str, device: str = Depends(get_current_device)):
@@ -456,10 +456,10 @@ async def run_device_request(device_manager, device_id):
         # Calculate analysis and put in json file for easy extractions
         print(f"API Response Status Code: {status_code}")
         call_count += 1
-        if call_count >= 3:
+        if call_count >= 30:
             await get_statistics(device_id)
             call_count = 0
-        await asyncio.sleep(2)  # Use asyncio.sleep instead of time.sleep
+        await asyncio.sleep(60)  # Use asyncio.sleep instead of time.sleep
 
 def send_post_request(device_id):
     headers = {
