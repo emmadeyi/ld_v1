@@ -6,32 +6,32 @@
       "start_time": "2023-10-13 00:00:00",
       "end_time": "2023-10-13 23:59:59",
       "power_usage": {
-        "kwh": 0.0219527,
-        "cost": 0.22
+        "kwh": 0.0261165,
+        "cost": 0.26
       }
     },
     "week": {
       "start_time": "2023-10-09 00:00:00",
       "end_time": "2023-10-13 23:59:59",
       "power_usage": {
-        "kwh": 3.4347775,
-        "cost": 34.35
+        "kwh": 3.4389413,
+        "cost": 34.39
       }
     },
     "month": {
       "start_time": "2023-10-01 00:00:00",
       "end_time": "2023-10-13 23:59:59",
       "power_usage": {
-        "kwh": 5.4728235,
-        "cost": 54.73
+        "kwh": 5.4769873,
+        "cost": 54.77
       }
     },
     "year": {
       "start_time": "2023-01-01 00:00:00",
       "end_time": "2023-10-13 23:59:59",
       "power_usage": {
-        "kwh": 5.4728235,
-        "cost": 54.73
+        "kwh": 5.4769873,
+        "cost": 54.77
       }
     }
   },
@@ -41,52 +41,52 @@
     "day": {
       "start_time": "2023-10-13 00:00:00",
       "end_time": "2023-10-13 23:59:59",
-      "daytime_online": 8215,
+      "daytime_online": 12169,
       "daytime_offline": 2035,
       "daytime_connection_lost": 0,
       "nighttime_online": 0,
       "nighttime_offline": 0,
       "nighttime_connection_lost": 0,
-      "total_online": 8215,
+      "total_online": 12169,
       "total_offline": 0,
       "total_connection_lost": 0
     },
     "week": {
       "start_time": "2023-10-09 00:00:00",
       "end_time": "2023-10-13 23:59:59",
-      "daytime_online": 183616,
+      "daytime_online": 187570,
       "daytime_offline": 34078,
       "daytime_connection_lost": 0,
       "nighttime_online": 4314,
       "nighttime_offline": 565,
       "nighttime_connection_lost": 0,
-      "total_online": 187930,
+      "total_online": 191884,
       "total_offline": 1130,
       "total_connection_lost": 0
     },
     "month": {
       "start_time": "2023-10-01 00:00:00",
       "end_time": "2023-10-13 23:59:59",
-      "daytime_online": 533955,
+      "daytime_online": 537909,
       "daytime_offline": 93964,
       "daytime_connection_lost": 0,
       "nighttime_online": 12451,
       "nighttime_offline": 97653,
       "nighttime_connection_lost": 0,
-      "total_online": 546406,
+      "total_online": 550360,
       "total_offline": 195306,
       "total_connection_lost": 0
     },
     "year": {
       "start_time": "2023-01-01 00:00:00",
       "end_time": "2023-10-13 23:59:59",
-      "daytime_online": 533955,
+      "daytime_online": 537909,
       "daytime_offline": 93964,
       "daytime_connection_lost": 0,
       "nighttime_online": 12451,
       "nighttime_offline": 97653,
       "nighttime_connection_lost": 0,
-      "total_online": 546406,
+      "total_online": 550360,
       "total_offline": 195306,
       "total_connection_lost": 0
     }

@@ -15,7 +15,8 @@ sqlite_db_file = "device_data.db"
 device_stats_file = "device_stats.json"
 passcode_file = "passcode.txt"
 api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
-authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
+authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
+# authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
 
 # sqlite_db_file = os.environ.get('SQLITE_DB_FILE')
 # device_stats_file = os.environ.get('DEVICE_STATS_FILE')
@@ -117,6 +118,7 @@ async def send_status_notification(data):
         # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/initialize"
         api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/"
         # api_endpoint = "https://lytdey.com/version-test/api/1.1/wf/update_status_change"
+        # authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
         authorization_token = "d7dcde50cf4771acfbf36e28a4c58e96"
         headers = {
             "Authorization": f"Bearer {authorization_token}",
