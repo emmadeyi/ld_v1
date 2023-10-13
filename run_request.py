@@ -65,10 +65,10 @@ async def start_api_call(device_manager, stop_event):
                 # Calculate analysis and put in json file for easy extractions
                 print(f"API Response Status Code: {status_code}")
                 call_count += 1
-                if call_count >= 3:
+                if call_count >= 30:
                     await get_statistics(device[1])
                     call_count = 0
-                await asyncio.sleep(2)  # Use asyncio.sleep instead of time.sleep
+                await asyncio.sleep(60)  # Use asyncio.sleep instead of time.sleep
         else:
             print("Invalid Credentials")
     else:
