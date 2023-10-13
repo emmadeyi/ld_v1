@@ -358,8 +358,8 @@ class DeviceStatusAnalyzer:
         transitions = await self.get_status_transitions(start_time, end_time)
         # 0 = status, 1 = timestamp, 2 = device_id, 3 = power, 4 = voltage, 5 = current, 6 = name, 7 = id
         # Calculate status durations for the specified time range
-        device_tariff = self.get_device_tariff(self.device_id)
-        tariff = 10
+        # device_tariff = self.get_device_tariff(self.device_id)
+        tariff = self.get_device_tariff(self.device_id)[0]
         # tariff = device_tariff[-1]
         total_online_energy = 0
         total_offline_energy = 0
