@@ -335,7 +335,7 @@ class DeviceStatusAnalyzer:
         #     "total_offline":await self.format_duration(total_statistics[1]),
         #     "total_connection_lost":await self.format_duration(total_statistics[2])
         # }]
-        result = [{
+        result = {
             'start_time': transitions[0][1] if start_time == None else start_time,
             'end_time': transitions[-1][1] if end_time == None else end_time,
             "daytime_online": daytime_statistics[0], 
@@ -347,7 +347,7 @@ class DeviceStatusAnalyzer:
             "total_online": total_statistics[0], 
             "total_offline": total_statistics[1],
             "total_connection_lost": total_statistics[2]
-        }]
+        }
 
         # print(f"Status stats for: {start_time} - {end_time} processed")
 
@@ -411,14 +411,14 @@ class DeviceStatusAnalyzer:
         #             }
         #         }
 
-        result = [{
+        result = {
                     'start_time': transitions[0][1] if start_time == None else start_time,
                     'end_time': transitions[-1][1] if end_time == None else end_time,
                     'power_usage':{
                         "kwh": kwh,
                         "cost": round(kwh * float(tariff), 2),
                     }
-                }]
+                }
 
 
         # print(f"Energy stats for: {start_time} - {end_time} processed")
