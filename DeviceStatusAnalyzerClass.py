@@ -299,27 +299,41 @@ class DeviceStatusAnalyzer:
         # get total daytime and nighttime statistics in seconds 
         total_statistics = await self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
 
+        # result = {
+        #     'device_id':self.device_id,
+        #     'duration':{                
+        #         'start_time': transitions[0][1] if start_time == None else start_time,
+        #         'end_time': transitions[-1][1] if end_time == None else end_time,
+        #     },
+        #     'daytime_statistics':{
+        #         "daytime_online":await self.format_duration(daytime_statistics[0]), 
+        #         "daytime_offline":await self.format_duration(daytime_statistics[1]), 
+        #         "daytime_connection_lost":await self.format_duration(daytime_statistics[2])
+        #     },
+        #     'nighttime_statistics':{
+        #         "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
+        #         "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
+        #         "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2])
+        #     },
+        #     'total_statistics':{
+        #         "total_online":await self.format_duration(total_statistics[0]), 
+        #         "total_offline":await self.format_duration(total_statistics[1]), 
+        #         "total_connection_lost":await self.format_duration(total_statistics[2])
+        #     }
+        # }
+
         result = {
-            'device_id':self.device_id,
-            'duration':{                
-                'start_time': transitions[0][1] if start_time == None else start_time,
-                'end_time': transitions[-1][1] if end_time == None else end_time,
-            },
-            'daytime_statistics':{
-                "daytime_online":await self.format_duration(daytime_statistics[0]), 
-                "daytime_offline":await self.format_duration(daytime_statistics[1]), 
-                "daytime_connection_lost":await self.format_duration(daytime_statistics[2])
-            },
-            'nighttime_statistics':{
-                "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
-                "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
-                "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2])
-            },
-            'total_statistics':{
-                "total_online":await self.format_duration(total_statistics[0]), 
-                "total_offline":await self.format_duration(total_statistics[1]), 
-                "total_connection_lost":await self.format_duration(total_statistics[2])
-            }
+            'start_time': transitions[0][1] if start_time == None else start_time,
+            'end_time': transitions[-1][1] if end_time == None else end_time,
+            "daytime_online":await self.format_duration(daytime_statistics[0]), 
+            "daytime_offline":await self.format_duration(daytime_statistics[1]), 
+            "daytime_connection_lost":await self.format_duration(daytime_statistics[2]),
+            "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
+            "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
+            "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2]),
+            "total_online":await self.format_duration(total_statistics[0]), 
+            "total_offline":await self.format_duration(total_statistics[1]),
+            "total_connection_lost":await self.format_duration(total_statistics[2])
         }
 
         # print(f"Status stats for: {start_time} - {end_time} processed")
@@ -366,21 +380,30 @@ class DeviceStatusAnalyzer:
         # # get total daytime and nighttime statistics in seconds 
         # total_statistics = self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
         kwh = round(await self.convert_energy_to_KWh(total_online_energy), 7)
+        # result = {
+        #             'device_id':self.device_id,
+        #             'device_tariff':self.get_device_tariff(self.device_id),
+        #             'duration':{
+        #                 'start_time': transitions[0][1] if start_time == None else start_time,
+        #                 'end_time': transitions[-1][1] if end_time == None else end_time,
+        #             },
+        #             'power_usage':{
+        #                 'total_online_energy': {
+        #                     "status": True, 
+        #                     "kwh": kwh,
+        #                     "cost": round(kwh * float(tariff), 2)},
+        #                 'total_offline_energy': {
+        #                     "status": False,
+        #                     "kwh": round(await self.convert_energy_to_KWh(total_offline_energy), 7)}
+        #             }
+        #         }
+
         result = {
-                    'device_id':self.device_id,
-                    'device_tariff':self.get_device_tariff(self.device_id),
-                    'duration':{
-                        'start_time': transitions[0][1] if start_time == None else start_time,
-                        'end_time': transitions[-1][1] if end_time == None else end_time,
-                    },
+                    'start_time': transitions[0][1] if start_time == None else start_time,
+                    'end_time': transitions[-1][1] if end_time == None else end_time,
                     'power_usage':{
-                        'total_online_energy': {
-                            "status": True, 
-                            "kwh": kwh,
-                            "cost": round(kwh * float(tariff), 2)},
-                        'total_offline_energy': {
-                            "status": False,
-                            "kwh": round(await self.convert_energy_to_KWh(total_offline_energy), 7)}
+                        "kwh": kwh,
+                        "cost": round(kwh * float(tariff), 2),
                     }
                 }
 
@@ -475,32 +498,56 @@ class DeviceStatusAnalyzer:
         #     self.get_energy_statistics_of_day_range(start_of_year),
         #     self.get_statistics_of_day_range(start_of_year)
         # ]
-        result = {            
-            "day": [
+        # result = {            
+        #     "day": [
+        #         {
+        #             "energy_statistics": await self.get_energy_statistics_of_day_range(),
+        #             "status_statistics": await self.get_statistics_of_day_range()
+        #         }
+        #     ],
+        #     "week": [
+        #         {
+        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_week),
+        #             "status_statistics": await self.get_statistics_of_day_range(start_of_week)
+        #         }
+        #     ],
+        #     "month": [
+        #         {
+        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_month),
+        #             "status_statistics": await self.get_statistics_of_day_range(start_of_month)
+        #         }
+        #     ],
+        #     "year": [
+        #         {
+        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_year),
+        #             "status_statistics": await self.get_statistics_of_day_range(start_of_year)
+        #         }
+        #     ]
+        # }
+        result = [{
+            "energy_statistics": [
                 {
-                    "energy_statistics": await self.get_energy_statistics_of_day_range(),
-                    "status_statistics": await self.get_statistics_of_day_range()
-                }
-            ],
-            "week": [
-                {
-                    "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_week),
-                    "status_statistics": await self.get_statistics_of_day_range(start_of_week)
-                }
-            ],
-            "month": [
-                {
-                    "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_month),
-                    "status_statistics": await self.get_statistics_of_day_range(start_of_month)
-                }
-            ],
-            "year": [
-                {
-                    "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_year),
-                    "status_statistics": await self.get_statistics_of_day_range(start_of_year)
-                }
-            ]
-        }
+                    "device_id": self.device_id,
+                    "current_tariff": self.get_device_tariff(self.device_id)[0],
+                    "day": await self.get_energy_statistics_of_day_range(),
+                        "week": await self.get_energy_statistics_of_day_range(start_of_week),
+                        "month": await self.get_energy_statistics_of_day_range(start_of_month),
+                        "year": await self.get_energy_statistics_of_day_range(start_of_year)
+                    }
+                ]
+        },
+        {
+            "status_statistics": [
+                    {
+                        "device_id": self.device_id,
+                        "current_tariff": self.get_device_tariff(self.device_id)[0],
+                    "day": await self.get_statistics_of_day_range(),
+                        "week": await self.get_statistics_of_day_range(start_of_week),
+                        "month": await self.get_statistics_of_day_range(start_of_month),
+                        "year": await self.get_statistics_of_day_range(start_of_year)
+                    }
+                ]
+        }]
         # Run the tasks concurrently
         # result = await asyncio.gather(*tasks)
         return result

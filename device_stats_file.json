@@ -1,190 +1,102 @@
-{
-  "day": [
-    {
-      "energy_statistics": {
+[
+  {
+    "energy_statistics": [
+      {
         "device_id": "1001e2b96d",
-        "device_tariff": [
-          68.2
-        ],
-        "duration": {
+        "current_tariff": 68.2,
+        "day": {
           "start_time": "2023-10-13 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
+          "end_time": "2023-10-13 23:59:59",
+          "power_usage": {
+            "kwh": 0.0147357,
+            "cost": 0.15
+          }
         },
-        "power_usage": {
-          "total_online_energy": {
-            "status": true,
-            "kwh": 0.0,
-            "cost": 0.0
-          },
-          "total_offline_energy": {
-            "status": false,
-            "kwh": 0.0
+        "week": {
+          "start_time": "2023-10-09 00:00:00",
+          "end_time": "2023-10-13 23:59:59",
+          "power_usage": {
+            "kwh": 3.4275605,
+            "cost": 34.28
+          }
+        },
+        "month": {
+          "start_time": "2023-10-01 00:00:00",
+          "end_time": "2023-10-13 23:59:59",
+          "power_usage": {
+            "kwh": 5.4656065,
+            "cost": 54.66
+          }
+        },
+        "year": {
+          "start_time": "2023-01-01 00:00:00",
+          "end_time": "2023-10-13 23:59:59",
+          "power_usage": {
+            "kwh": 5.4656065,
+            "cost": 54.66
           }
         }
-      },
-      "status_statistics": {
+      }
+    ]
+  },
+  {
+    "status_statistics": [
+      {
         "device_id": "1001e2b96d",
-        "duration": {
+        "current_tariff": 68.2,
+        "day": {
           "start_time": "2023-10-13 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "daytime_statistics": {
-          "daytime_online": "0 hours, 0 minutes, 0 seconds",
-          "daytime_offline": "0 hours, 0 minutes, 0 seconds",
-          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "nighttime_statistics": {
+          "end_time": "2023-10-13 23:59:59",
+          "daytime_online": "1 hours, 48 minutes, 45 seconds",
+          "daytime_offline": "0 hours, 4 minutes, 51 seconds",
+          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds",
           "nighttime_online": "0 hours, 0 minutes, 0 seconds",
           "nighttime_offline": "0 hours, 0 minutes, 0 seconds",
-          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "total_statistics": {
-          "total_online": "0 hours, 0 minutes, 0 seconds",
+          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds",
+          "total_online": "1 hours, 48 minutes, 45 seconds",
           "total_offline": "0 hours, 0 minutes, 0 seconds",
           "total_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        }
-      }
-    }
-  ],
-  "week": [
-    {
-      "energy_statistics": {
-        "device_id": "1001e2b96d",
-        "device_tariff": [
-          68.2
-        ],
-        "duration": {
+        },
+        "week": {
           "start_time": "2023-10-09 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "power_usage": {
-          "total_online_energy": {
-            "status": true,
-            "kwh": 3.4128248,
-            "cost": 34.13
-          },
-          "total_offline_energy": {
-            "status": false,
-            "kwh": 0.9599757
-          }
-        }
-      },
-      "status_statistics": {
-        "device_id": "1001e2b96d",
-        "duration": {
-          "start_time": "2023-10-09 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "daytime_statistics": {
-          "daytime_online": "30 hours, 48 minutes, 35 seconds",
-          "daytime_offline": "8 hours, 54 minutes, 3 seconds",
-          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "nighttime_statistics": {
+          "end_time": "2023-10-13 23:59:59",
+          "daytime_online": "50 hours, 32 minutes, 6 seconds",
+          "daytime_offline": "8 hours, 58 minutes, 54 seconds",
+          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds",
           "nighttime_online": "1 hours, 11 minutes, 54 seconds",
           "nighttime_offline": "0 hours, 9 minutes, 25 seconds",
-          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "total_statistics": {
-          "total_online": "32 hours, 0 minutes, 29 seconds",
+          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds",
+          "total_online": "51 hours, 44 minutes, 0 seconds",
           "total_offline": "0 hours, 18 minutes, 50 seconds",
           "total_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        }
-      }
-    }
-  ],
-  "month": [
-    {
-      "energy_statistics": {
-        "device_id": "1001e2b96d",
-        "device_tariff": [
-          68.2
-        ],
-        "duration": {
+        },
+        "month": {
           "start_time": "2023-10-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "power_usage": {
-          "total_online_energy": {
-            "status": true,
-            "kwh": 5.4508708,
-            "cost": 54.51
-          },
-          "total_offline_energy": {
-            "status": false,
-            "kwh": 3.3380305
-          }
-        }
-      },
-      "status_statistics": {
-        "device_id": "1001e2b96d",
-        "duration": {
-          "start_time": "2023-10-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "daytime_statistics": {
-          "daytime_online": "128 hours, 7 minutes, 34 seconds",
-          "daytime_offline": "25 hours, 32 minutes, 9 seconds",
-          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "nighttime_statistics": {
+          "end_time": "2023-10-13 23:59:59",
+          "daytime_online": "147 hours, 51 minutes, 5 seconds",
+          "daytime_offline": "25 hours, 37 minutes, 0 seconds",
+          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds",
           "nighttime_online": "3 hours, 27 minutes, 31 seconds",
           "nighttime_offline": "27 hours, 7 minutes, 33 seconds",
-          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds"
+          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds",
+          "total_online": "151 hours, 18 minutes, 36 seconds",
+          "total_offline": "54 hours, 15 minutes, 6 seconds",
+          "total_connection_lost": "0 hours, 0 minutes, 0 seconds"
         },
-        "total_statistics": {
-          "total_online": "131 hours, 35 minutes, 5 seconds",
+        "year": {
+          "start_time": "2023-01-01 00:00:00",
+          "end_time": "2023-10-13 23:59:59",
+          "daytime_online": "147 hours, 51 minutes, 5 seconds",
+          "daytime_offline": "25 hours, 37 minutes, 0 seconds",
+          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds",
+          "nighttime_online": "3 hours, 27 minutes, 31 seconds",
+          "nighttime_offline": "27 hours, 7 minutes, 33 seconds",
+          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds",
+          "total_online": "151 hours, 18 minutes, 36 seconds",
           "total_offline": "54 hours, 15 minutes, 6 seconds",
           "total_connection_lost": "0 hours, 0 minutes, 0 seconds"
         }
       }
-    }
-  ],
-  "year": [
-    {
-      "energy_statistics": {
-        "device_id": "1001e2b96d",
-        "device_tariff": [
-          68.2
-        ],
-        "duration": {
-          "start_time": "2023-01-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "power_usage": {
-          "total_online_energy": {
-            "status": true,
-            "kwh": 5.4508708,
-            "cost": 54.51
-          },
-          "total_offline_energy": {
-            "status": false,
-            "kwh": 3.3380305
-          }
-        }
-      },
-      "status_statistics": {
-        "device_id": "1001e2b96d",
-        "duration": {
-          "start_time": "2023-01-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59"
-        },
-        "daytime_statistics": {
-          "daytime_online": "128 hours, 7 minutes, 34 seconds",
-          "daytime_offline": "25 hours, 32 minutes, 9 seconds",
-          "daytime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "nighttime_statistics": {
-          "nighttime_online": "3 hours, 27 minutes, 31 seconds",
-          "nighttime_offline": "27 hours, 7 minutes, 33 seconds",
-          "nighttime_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        },
-        "total_statistics": {
-          "total_online": "131 hours, 35 minutes, 5 seconds",
-          "total_offline": "54 hours, 15 minutes, 6 seconds",
-          "total_connection_lost": "0 hours, 0 minutes, 0 seconds"
-        }
-      }
-    }
-  ]
-}
+    ]
+  }
+]

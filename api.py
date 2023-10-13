@@ -377,7 +377,16 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
     try:
         with open(device_stats_file, "r") as json_file:
             json_data = json.load(json_file)
-            return JSONResponse(content=json_data)
+            return JSONResponse(content=json_data[1])
+    except FileNotFoundError:
+            return None
+    
+@app.get("/device/aggregated/power_usage")
+async def read_device_aggregated_stats(current_device: str = Depends(get_current_device)): 
+    try:
+        with open(device_stats_file, "r") as json_file:
+            json_data = json.load(json_file)
+            return JSONResponse(content=json_data[0])
     except FileNotFoundError:
             return None
 
@@ -386,7 +395,7 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
 stop_api_request = asyncio.Event()
 # stop_api_request = False
 sqlite_db_file = "device_data.db"
-device_stats_file = "device_stats.json"
+device_stats_file = "device_stats_file.json"
 passcode_file = "passcode.txt"
 api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
 authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
