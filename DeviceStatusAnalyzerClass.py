@@ -322,18 +322,31 @@ class DeviceStatusAnalyzer:
         #     }
         # }
 
+        # result = [{
+        #     'start_time': transitions[0][1] if start_time == None else start_time,
+        #     'end_time': transitions[-1][1] if end_time == None else end_time,
+        #     "daytime_online":await self.format_duration(daytime_statistics[0]), 
+        #     "daytime_offline":await self.format_duration(daytime_statistics[1]), 
+        #     "daytime_connection_lost":await self.format_duration(daytime_statistics[2]),
+        #     "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
+        #     "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
+        #     "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2]),
+        #     "total_online":await self.format_duration(total_statistics[0]), 
+        #     "total_offline":await self.format_duration(total_statistics[1]),
+        #     "total_connection_lost":await self.format_duration(total_statistics[2])
+        # }]
         result = [{
             'start_time': transitions[0][1] if start_time == None else start_time,
             'end_time': transitions[-1][1] if end_time == None else end_time,
-            "daytime_online":await self.format_duration(daytime_statistics[0]), 
-            "daytime_offline":await self.format_duration(daytime_statistics[1]), 
-            "daytime_connection_lost":await self.format_duration(daytime_statistics[2]),
-            "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
-            "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
-            "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2]),
-            "total_online":await self.format_duration(total_statistics[0]), 
-            "total_offline":await self.format_duration(total_statistics[1]),
-            "total_connection_lost":await self.format_duration(total_statistics[2])
+            "daytime_online": daytime_statistics[0], 
+            "daytime_offline": daytime_statistics[1], 
+            "daytime_connection_lost": daytime_statistics[2],
+            "nighttime_online": nighttime_statistics[0], 
+            "nighttime_offline": nighttime_statistics[1], 
+            "nighttime_connection_lost": nighttime_statistics[2],
+            "total_online": total_statistics[0], 
+            "total_offline": total_statistics[1],
+            "total_connection_lost": total_statistics[2]
         }]
 
         # print(f"Status stats for: {start_time} - {end_time} processed")
@@ -525,19 +538,16 @@ class DeviceStatusAnalyzer:
         #     ]
         # }
         result = {
-            "energy_statistics": 
-                {
-                    "device_id": self.device_id,
-                    "current_tariff": self.get_device_tariff(self.device_id)[0],
-                        "day": await self.get_energy_statistics_of_day_range(),
-                        "week": await self.get_energy_statistics_of_day_range(start_of_week),
-                        "month": await self.get_energy_statistics_of_day_range(start_of_month),
-                        "year": await self.get_energy_statistics_of_day_range(start_of_year)
-                    }
-                
-        },
-        {
-            "status_statistics": 
+                    "energy_statistics": 
+                    {
+                        "device_id": self.device_id,
+                        "current_tariff": self.get_device_tariff(self.device_id)[0],
+                            "day": await self.get_energy_statistics_of_day_range(),
+                            "week": await self.get_energy_statistics_of_day_range(start_of_week),
+                            "month": await self.get_energy_statistics_of_day_range(start_of_month),
+                            "year": await self.get_energy_statistics_of_day_range(start_of_year)
+                    },
+                    "status_statistics": 
                     {
                         "device_id": self.device_id,
                         "current_tariff": self.get_device_tariff(self.device_id)[0],
@@ -545,9 +555,8 @@ class DeviceStatusAnalyzer:
                         "week": await self.get_statistics_of_day_range(start_of_week),
                         "month": await self.get_statistics_of_day_range(start_of_month),
                         "year": await self.get_statistics_of_day_range(start_of_year)
-                    }
-                
-        }
+                    }                
+                }
         # Run the tasks concurrently
         # result = await asyncio.gather(*tasks)
         return result

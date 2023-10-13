@@ -377,7 +377,7 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
     try:
         with open(device_stats_file, "r") as json_file:
             json_data = json.load(json_file)
-            return JSONResponse(content=json_data[1])
+            return JSONResponse(content=json_data["status_statistics"])
     except FileNotFoundError:
             return None
     
@@ -386,7 +386,7 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
     try:
         with open(device_stats_file, "r") as json_file:
             json_data = json.load(json_file)
-            return JSONResponse(content=json_data[0])
+            return JSONResponse(content=json_data["energy_statistics"])
     except FileNotFoundError:
             return None
 

@@ -1,48 +1,110 @@
-[
-  {
-    "energy_statistics": {
-      "device_id": "1001e2b96d",
-      "current_tariff": 68.2,
-      "day": [
-        {
-          "start_time": "2023-10-13 00:00:00",
-          "end_time": "2023-10-13 23:59:59",
-          "power_usage": {
-            "kwh": 0.0172798,
-            "cost": 0.17
-          }
+{
+  "energy_statistics": {
+    "device_id": "1001e2b96d",
+    "current_tariff": 68.2,
+    "day": [
+      {
+        "start_time": "2023-10-13 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "power_usage": {
+          "kwh": 0.019647,
+          "cost": 0.2
         }
-      ],
-      "week": [
-        {
-          "start_time": "2023-10-09 00:00:00",
-          "end_time": "2023-10-13 23:59:59",
-          "power_usage": {
-            "kwh": 3.4301047,
-            "cost": 34.3
-          }
+      }
+    ],
+    "week": [
+      {
+        "start_time": "2023-10-09 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "power_usage": {
+          "kwh": 3.4324718,
+          "cost": 34.32
         }
-      ],
-      "month": [
-        {
-          "start_time": "2023-10-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59",
-          "power_usage": {
-            "kwh": 5.4681507,
-            "cost": 54.68
-          }
+      }
+    ],
+    "month": [
+      {
+        "start_time": "2023-10-01 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "power_usage": {
+          "kwh": 5.4705178,
+          "cost": 54.71
         }
-      ],
-      "year": [
-        {
-          "start_time": "2023-01-01 00:00:00",
-          "end_time": "2023-10-13 23:59:59",
-          "power_usage": {
-            "kwh": 5.4681507,
-            "cost": 54.68
-          }
+      }
+    ],
+    "year": [
+      {
+        "start_time": "2023-01-01 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "power_usage": {
+          "kwh": 5.4705178,
+          "cost": 54.71
         }
-      ]
-    }
+      }
+    ]
+  },
+  "status_statistics": {
+    "device_id": "1001e2b96d",
+    "current_tariff": 68.2,
+    "day": [
+      {
+        "start_time": "2023-10-13 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "daytime_online": 7631,
+        "daytime_offline": 2035,
+        "daytime_connection_lost": 0,
+        "nighttime_online": 0,
+        "nighttime_offline": 0,
+        "nighttime_connection_lost": 0,
+        "total_online": 7631,
+        "total_offline": 0,
+        "total_connection_lost": 0
+      }
+    ],
+    "week": [
+      {
+        "start_time": "2023-10-09 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "daytime_online": 183032,
+        "daytime_offline": 34078,
+        "daytime_connection_lost": 0,
+        "nighttime_online": 4314,
+        "nighttime_offline": 565,
+        "nighttime_connection_lost": 0,
+        "total_online": 187346,
+        "total_offline": 1130,
+        "total_connection_lost": 0
+      }
+    ],
+    "month": [
+      {
+        "start_time": "2023-10-01 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "daytime_online": 533371,
+        "daytime_offline": 93964,
+        "daytime_connection_lost": 0,
+        "nighttime_online": 12451,
+        "nighttime_offline": 97653,
+        "nighttime_connection_lost": 0,
+        "total_online": 545822,
+        "total_offline": 195306,
+        "total_connection_lost": 0
+      }
+    ],
+    "year": [
+      {
+        "start_time": "2023-01-01 00:00:00",
+        "end_time": "2023-10-13 23:59:59",
+        "daytime_online": 533371,
+        "daytime_offline": 93964,
+        "daytime_connection_lost": 0,
+        "nighttime_online": 12451,
+        "nighttime_offline": 97653,
+        "nighttime_connection_lost": 0,
+        "total_online": 545822,
+        "total_offline": 195306,
+        "total_connection_lost": 0
+      }
+    ]
   }
-]
+}
