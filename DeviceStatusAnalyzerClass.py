@@ -524,8 +524,8 @@ class DeviceStatusAnalyzer:
         #         }
         #     ]
         # }
-        result = [{
-            "energy_statistics": [
+        result = {
+            "energy_statistics": 
                 {
                     "device_id": self.device_id,
                     "current_tariff": self.get_device_tariff(self.device_id)[0],
@@ -534,10 +534,10 @@ class DeviceStatusAnalyzer:
                         "month": await self.get_energy_statistics_of_day_range(start_of_month),
                         "year": await self.get_energy_statistics_of_day_range(start_of_year)
                     }
-                ]
+                
         },
         {
-            "status_statistics": [
+            "status_statistics": 
                     {
                         "device_id": self.device_id,
                         "current_tariff": self.get_device_tariff(self.device_id)[0],
@@ -546,8 +546,8 @@ class DeviceStatusAnalyzer:
                         "month": await self.get_statistics_of_day_range(start_of_month),
                         "year": await self.get_statistics_of_day_range(start_of_year)
                     }
-                ]
-        }]
+                
+        }
         # Run the tasks concurrently
         # result = await asyncio.gather(*tasks)
         return result
