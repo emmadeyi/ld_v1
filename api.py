@@ -410,7 +410,7 @@ async def start_api_call(action: str, background_tasks: BackgroundTasks, device:
         passcode_file=passcode_file
     )
     # await run_device_request(device_manager, device[1])
-    # Start the asynchronous API request
+    # Start the asynchronous API request 
     if action == '0':
         stop_api_request.set() # to stop the request
         return {"message": "Device request stopped", "device": device[1]}

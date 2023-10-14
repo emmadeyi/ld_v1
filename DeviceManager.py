@@ -43,6 +43,7 @@ class DeviceManager:
             api TEXT,
             is_active BOOLEAN,
             bearer_token TEXT,
+            tariff_value REAL,
         );
         '''
         cursor.execute(create_registration_table_query)
