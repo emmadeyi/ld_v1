@@ -378,7 +378,7 @@ async def read_device_day_diff_power_usage(day_diff: int, current_device: str = 
 
 # Get Device Aggregated Stats
 @app.get("/device/aggregated/statistics")
-async def read_device_aggregated_stats(current_device: str = Depends(get_current_device)): 
+async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)):     
     try:
         with open(device_stats_file, "r") as json_file:
             try:
@@ -387,14 +387,18 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
                     status_statistics_data = json_data['status_statistics']
                     return JSONResponse(content=status_statistics_data)
                 else:
-                    return JSONResponse({"Response": f"No Power Usage data"})
+                    # run calculation
+                    bg.add_task(get_statistics, current_device[1])
+                    # json_data = bg.add_task(get_statistics, current_device[1])
+                    return JSONResponse({"Response": json_data['status_statistics']})
             except json.decoder.JSONDecodeError as e:
+                json_data = bg.add_task(get_statistics, current_device[1])
                 return JSONResponse({"Response": f"No Stats Records"})
     except FileNotFoundError:
             return None
     
 @app.get("/device/aggregated/power_usage")
-async def read_device_aggregated_stats(current_device: str = Depends(get_current_device)): 
+async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
     try:
         with open(device_stats_file, "r") as json_file:
             try:
@@ -403,8 +407,12 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
                     energy_statistics_data = json_data['energy_statistics']
                     return JSONResponse(content=energy_statistics_data)
                 else:
-                    return JSONResponse({"Response": f"No Power Usage data"})
+                    # run calculation
+                    bg.add_task(get_statistics, current_device[1])
+                    # json_data = bg.add_task(get_statistics, current_device[1])
+                    return JSONResponse({"Response": json_data['energy_statistics']})
             except json.decoder.JSONDecodeError as e:
+                json_data = bg.add_task(get_statistics, current_device[1])
                 return JSONResponse({"Response": f"No Stats Records"})
     except FileNotFoundError:
             return None
