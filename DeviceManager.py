@@ -460,7 +460,19 @@ class DeviceManager:
             cursor.close()
             connection.close()
 
-    # Example usage:
+    def clear_data(self):
+        # Connect to SQLite database
+        conn = sqlite3.connect('device_data.db')
+        cursor = conn.cursor()
+
+        # Delete all records from the table
+        cursor.execute('DELETE FROM device_data;')
+
+        # Commit the changes
+        conn.commit()
+
+        # Close the connection
+        conn.close()
 
 if __name__ == "__main__":
     # Create an instance of DeviceManager
@@ -472,8 +484,9 @@ if __name__ == "__main__":
         passcode_file="passcode.txt"
     )
 
+    device_manager.clear_data()
     # device_manager.change_column_type("device_data.db", "registration_data", "tariff", "FLOAT")
-    device_manager.get_table_structure("registration_data", "device_data.db")
+    # device_manager.get_table_structure("registration_data", "device_data.db")
     # device_manager.alter_registration_table()
     # # Create SQLite tables if not exists
     # device_manager.create_tables()

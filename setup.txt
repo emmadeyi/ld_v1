@@ -1,0 +1,20 @@
+1. clear db
+py .\DeviceManager.py 
+2. CD to root directory
+cd
+3. remove project directory from server
+py .\DeviceManager.py 
+4. clone git
+py .\DeviceManager.py 
+pgrep -f "command-to-run"
+pgrep -f "python uvicorn"
+
+rm -rf energi_api
+git clone https://github.com/emmadeyi/energi_api.git
+cd energi_api/
+pip3 install -r requirements.txt 
+vim .env
+nohup uvicorn api:app
+
+# Kill the process
+kill PID

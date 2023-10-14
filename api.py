@@ -56,7 +56,6 @@ async def get_device_bearer_token(device_id):
 async def get_device_tariff_value(device_id):
         try:
             # Insert registration data into the SQLite registration_data table
-            print(sqlite_db_file, device_id)
             connection = sqlite3.connect(sqlite_db_file)
             cursor = connection.cursor()
             if device_id is not None:
@@ -73,7 +72,6 @@ async def get_device_tariff_value(device_id):
             connection.close()
 
 async def update_device_tariff_value(device_id, tariff):
-        print(device_id, tariff)
         try:
             # Insert registration data into the SQLite registration_data table
             connection = sqlite3.connect(sqlite_db_file)
@@ -163,7 +161,6 @@ async def get_current_device(token: str = Depends(oauth2_scheme)):
     return device
 
 async def get_device_token(device_id: str):
-    print(device_id, sqlite_db_file[0])
     token = await get_device_bearer_token(device_id)
     if token is None:
         raise credentials_exception
@@ -389,13 +386,12 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
                 else:
                     # run calculation
                     bg.add_task(get_statistics, current_device[1])
-                    # json_data = bg.add_task(get_statistics, current_device[1])
-                    return JSONResponse({"Response": json_data['status_statistics']})
+                    return JSONResponse({"data": {}, "Error": f""})
             except json.decoder.JSONDecodeError as e:
-                json_data = bg.add_task(get_statistics, current_device[1])
-                return JSONResponse({"Response": f"No Stats Records"})
+                bg.add_task(get_statistics, current_device[1])
+                return JSONResponse({"data": {}, "Error": f"Stats File is empty. {e}"})
     except FileNotFoundError:
-            return None
+            return JSONResponse({"data": {}, "Error": f"Stats File error. {e}"})
     
 @app.get("/device/aggregated/power_usage")
 async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
@@ -409,13 +405,12 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
                 else:
                     # run calculation
                     bg.add_task(get_statistics, current_device[1])
-                    # json_data = bg.add_task(get_statistics, current_device[1])
-                    return JSONResponse({"Response": json_data['energy_statistics']})
+                    return JSONResponse({"data": {}, "Error": f""})
             except json.decoder.JSONDecodeError as e:
-                json_data = bg.add_task(get_statistics, current_device[1])
-                return JSONResponse({"Response": f"No Stats Records"})
+                bg.add_task(get_statistics, current_device[1])
+                return JSONResponse({"data": {}, "Error": f"Stats File is empty. {e}"})
     except FileNotFoundError:
-            return None
+            return JSONResponse({"data": {}, "Error": f"Stats File error. {e}"})
 
 
 # ##############################
@@ -430,7 +425,6 @@ async def start_api_call(action: str, background_tasks: BackgroundTasks, device:
         device_info_file=device_stats_file,
         passcode_file=passcode_file
     )
-    # await run_device_request(device_manager, device[1])
     # Start the asynchronous API request 
     if action == '0':
         stop_api_request.set() # to stop the request
@@ -500,12 +494,6 @@ def send_post_request(device_id):
         response = requests.post(api_endpoint, headers=headers, json=payload)
         response.raise_for_status()  # Raise an HTTPError for bad responses
         return response.json(), response.status_code
-    
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.post(api_endpoint, headers=headers, json=payload) as response:
-        #         data = await response.json()
-        #         print(data)
-        # await asyncio.sleep(1)  # Simulating some work
     except requests.RequestException as e:
         return {"error": f"Error: {e}"}, 500
 
@@ -523,11 +511,7 @@ async def load_device_info(stats, stats_file):
     except FileNotFoundError:
         return None
     
-async def send_status_notification(data):
-        # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/initialize"
-        api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/"
-        # api_endpoint = "https://lytdey.com/version-test/api/1.1/wf/update_status_change"
-        authorization_token = "d7dcde50cf4771acfbf36e28a4c58e96"
+async def send_status_notification(data, api_endpoint=config['NOTIFY_STATUS_CHANGE_API_ENDPOINT'], authorization_token=config['NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN']):
         headers = {
             "Authorization": f"Bearer {authorization_token}",
             "Content-Type": "application/json"
