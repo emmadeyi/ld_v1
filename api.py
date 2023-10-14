@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from DeviceManager import DeviceManager
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
@@ -9,10 +9,19 @@ import json
 import requests
 import asyncio
 import subprocess
+from dotenv import load_dotenv, dotenv_values
+
+# load_dotenv() 
+config = dotenv_values(".env")   
 
 app = FastAPI()
-sqlite_db_file="device_data.db"
-device_stats_file = "device_stats_file.json"
+# sqlite_db_file="device_data.db"
+sqlite_db_file=config["SQLITE_DB_FILE"]
+device_stats_file = config["DEVICE_STATS_FILE"]
+api_endpoint=config["API_ENDPOINT"]
+authorization_token=config["AUHTORIZATION_TOKEN"]
+# device_info_file=config["DEVICE_STATS_FILE"]
+passcode_file=config["PASSCODE_FILE"]
 
 # Define a security dependency using OAuth2AuthorizationCodeBearer
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
@@ -47,6 +56,7 @@ async def get_device_bearer_token(device_id):
 async def get_device_tariff_value(device_id):
         try:
             # Insert registration data into the SQLite registration_data table
+            print(sqlite_db_file, device_id)
             connection = sqlite3.connect(sqlite_db_file)
             cursor = connection.cursor()
             if device_id is not None:
@@ -153,7 +163,7 @@ async def get_current_device(token: str = Depends(oauth2_scheme)):
     return device
 
 async def get_device_token(device_id: str):
-    print(device_id)
+    print(device_id, sqlite_db_file[0])
     token = await get_device_bearer_token(device_id)
     if token is None:
         raise credentials_exception
@@ -200,11 +210,6 @@ async def update_device_tariff(tariff: str, device_id: str = Depends(update_devi
 @app.get("/refresh_device_token/{device_id}")
 async def refresh_device_token(device_id: str = Depends(refresh_device_token)):
     return {"message": "Device Token Refreshed", "token": device_id}
-
-# Endpoint that requires Bearer Token authorization
-@app.get("/private_data")
-async def private_data(device: str = Depends(get_current_device)):
-    return {"message": "You have access to private data", "device": device}
 
 # Get Current Device
 @app.get("/device/")
@@ -386,6 +391,7 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
     try:
         with open(device_stats_file, "r") as json_file:
             json_data = json.load(json_file)
+            # if empty, run statistics method
             return JSONResponse(content=json_data["energy_statistics"])
     except FileNotFoundError:
             return None
@@ -393,20 +399,14 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
 
 # ##############################
 stop_api_request = asyncio.Event()
-# stop_api_request = False
-sqlite_db_file = "device_data.db"
-device_stats_file = "device_stats.json"
-passcode_file = "passcode.txt"
-api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
-authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
 
 @app.get("/device_request/{action}")
-async def start_api_call(action: str, device: str = Depends(get_current_device)):
+async def start_api_call(action: str, background_tasks: BackgroundTasks, device: str = Depends(get_current_device)):
     device_manager = DeviceManager(
         api_endpoint=api_endpoint,
         authorization_token=authorization_token,
         sqlite_db_file=sqlite_db_file,
-        device_info_file="device_info.json",
+        device_info_file=device_stats_file,
         passcode_file=passcode_file
     )
     # await run_device_request(device_manager, device[1])
@@ -415,13 +415,14 @@ async def start_api_call(action: str, device: str = Depends(get_current_device))
         stop_api_request.set() # to stop the request
         return {"message": "Device request stopped", "device": device[1]}
     if action == '1':
-        api_task = asyncio.create_task(run_device_request(device_manager, device[1]))
-        await api_task
-    if action == '2':
-        restart_fastapi_server()
-        return {"message": "Restarting Server..."}
+        # api_task = asyncio.create_task(run_device_request(device_manager, device[1]))
+        # await api_task
+        background_tasks.add_task(run_device_request,device_manager, device[1])
+    # if action == '2':
+    #     restart_fastapi_server()
+    #     return {"message": "Restarting Server..."}
 
-    return {"message": "Start API Call", "device": device[1]}
+    return {"message": "API Call to Devices Stated", "device": device[1]}
 
 def restart_fastapi_server():
     try:

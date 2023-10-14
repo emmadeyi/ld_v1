@@ -4,9 +4,13 @@ import datetime
 import json
 import asyncio
 from DeviceManager import DeviceManager
+from dotenv import load_dotenv, dotenv_values
+
+# load_dotenv() 
+config = dotenv_values(".env")   
 
 class DeviceStatusAnalyzer:
-    def __init__(self, device_id=None,  device_tariff=None, db_file="device_data.db"):
+    def __init__(self, device_id=None,  device_tariff=None, db_file=config["SQLITE_DB_FILE"]):
         self.SQLITE_DB_FILE = db_file
         self.device_id = device_id
 

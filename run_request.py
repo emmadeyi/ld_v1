@@ -9,20 +9,10 @@ from passlib.context import CryptContext
 from DeviceManager import DeviceManager
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
-sqlite_db_file = "device_data.db"
-device_stats_file = "device_stats.json"
-passcode_file = "passcode.txt"
-api_endpoint = "https://eu-apia.coolkit.cc/v2/device/thing"
-authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
-# authorization_token = "616c8e6d436ec80abf5dc8874fb6c2bc8682b0e9"
-
-# sqlite_db_file = os.environ.get('SQLITE_DB_FILE')
-# device_stats_file = os.environ.get('DEVICE_STATS_FILE')
-# passcode_file = os.environ.get('PASSCODE_FILE')
-# api_endpoint = os.environ.get('API_ENDPOINT')
-# authorization_token = os.environ.get('AUHTORIZATION_TOKEN')
+# load_dotenv() 
+config = dotenv_values(".env")   
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -38,6 +28,7 @@ async def start_api_call(device_manager, stop_event):
     device_pass = getpass.getpass("Enter passcode for API: ")
     device = device_manager.get_device_data(device_id)
     previous_status = None
+    print(os.environ.get('AUHTORIZATION_TOKEN'), os.environ.get('API_ENDPOINT'))
 
     if device:
         if verify_password(device_pass, device[2]):
@@ -116,10 +107,11 @@ def restart_fastapi_server():
 
 async def send_status_notification(data):
         # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/initialize"
-        api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/"
         # api_endpoint = "https://lytdey.com/version-test/api/1.1/wf/update_status_change"
-        # authorization_token = "fdc7774a0120f4af43c1e19c2ffe9f1cf523305e"
-        authorization_token = "d7dcde50cf4771acfbf36e28a4c58e96"
+        # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/"
+        # authorization_token = "d7dcde50cf4771acfbf36e28a4c58e96"
+        api_endpoint = config["NOTIFY_STATUS_CHANGE_API_ENDPOINT"]
+        authorization_token = config["NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN"]
         headers = {
             "Authorization": f"Bearer {authorization_token}",
             "Content-Type": "application/json"
@@ -145,12 +137,13 @@ def exit_program(stop_event):
     sys.exit()
 
 if __name__ == "__main__":
+
     device_manager = DeviceManager(
-        api_endpoint=api_endpoint,
-        authorization_token=authorization_token,
-        sqlite_db_file=sqlite_db_file,
-        device_info_file="device_info.json",
-        passcode_file=passcode_file
+        api_endpoint=config["API_ENDPOINT"],
+        authorization_token=config["AUHTORIZATION_TOKEN"],
+        sqlite_db_file=config["SQLITE_DB_FILE"],
+        device_info_file=config["DEVICE_STATS_FILE"],
+        passcode_file=config["PASSCODE_FILE"]
     )
 
     stop_event = asyncio.Event()
