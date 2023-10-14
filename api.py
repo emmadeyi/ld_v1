@@ -381,8 +381,15 @@ async def read_device_day_diff_power_usage(day_diff: int, current_device: str = 
 async def read_device_aggregated_stats(current_device: str = Depends(get_current_device)): 
     try:
         with open(device_stats_file, "r") as json_file:
-            json_data = json.load(json_file)
-            return JSONResponse(content=json_data["status_statistics"])
+            try:
+                json_data = json.load(json_file)
+                if 'status_statistics' in json_data:
+                    status_statistics_data = json_data['status_statistics']
+                    return JSONResponse(content=status_statistics_data)
+                else:
+                    return JSONResponse({"Response": f"No Power Usage data"})
+            except json.decoder.JSONDecodeError as e:
+                return JSONResponse({"Response": f"No Stats Records"})
     except FileNotFoundError:
             return None
     
@@ -390,9 +397,15 @@ async def read_device_aggregated_stats(current_device: str = Depends(get_current
 async def read_device_aggregated_stats(current_device: str = Depends(get_current_device)): 
     try:
         with open(device_stats_file, "r") as json_file:
-            json_data = json.load(json_file)
-            # if empty, run statistics method
-            return JSONResponse(content=json_data["energy_statistics"])
+            try:
+                json_data = json.load(json_file)
+                if 'energy_statistics' in json_data:
+                    energy_statistics_data = json_data['energy_statistics']
+                    return JSONResponse(content=energy_statistics_data)
+                else:
+                    return JSONResponse({"Response": f"No Power Usage data"})
+            except json.decoder.JSONDecodeError as e:
+                return JSONResponse({"Response": f"No Stats Records"})
     except FileNotFoundError:
             return None
 
