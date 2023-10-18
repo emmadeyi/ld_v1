@@ -1,6 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2AuthorizationCodeBearer
-# from DeviceManager import DeviceManager
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
 import time
 import secrets

@@ -1,10 +1,7 @@
-import sqlite3
 import time
 import datetime
 import json
-import asyncio
-# from DeviceManager import DeviceManager
-from dotenv import load_dotenv, dotenv_values
+from dotenv import ldotenv_values
 from DatabaseClass import MongoDBClass
 
 # load_dotenv() 
