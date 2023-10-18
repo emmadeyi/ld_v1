@@ -1,7 +1,7 @@
 import time
 import datetime
 import json
-from dotenv import ldotenv_values
+from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
 
 # load_dotenv() 
