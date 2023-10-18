@@ -1,152 +1,143 @@
-import requests
-import json
-import getpass
-import asyncio
-import sys
-import subprocess
-from passlib.context import CryptContext
-# import classes
-from DeviceManager import DeviceManager
+from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks
+from fastapi.security import OAuth2AuthorizationCodeBearer
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
-import os
-from dotenv import load_dotenv, dotenv_values
+from fastapi.responses import JSONResponse
+import json
+import requests
+import asyncio
+from dotenv import dotenv_values
+from DatabaseClass import MongoDBClass
+import datetime
+import pytz
 
-# load_dotenv() 
-config = dotenv_values(".env")   
+config = dotenv_values(".env")
+db_client = config['DATABASE_URL']
+db_name = config['DATABASE_NAME']
+device_info = config['DEVICE_INFO_COLLECTION']
+device_response_data = config['DEVICE_RESPONSE_COLLECTION']
+device_stats_data = config['DEVICE_STATS_COLLECTION']
+device_stats_file = config["DEVICE_STATS_FILE"]
+api_endpoint = config["API_ENDPOINT"]
+authorization_token = config["AUHTORIZATION_TOKEN"]
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+database = MongoDBClass(db_client, db_name)
 
-def verify_password(plain_pass, hashed_pass):
-    return pwd_context.verify(plain_pass, hashed_pass)
+async def get_devices():
+    devices = await database.get_all_devices(device_info)
+    return devices
 
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-async def start_api_call(device_manager, stop_event):
-    device_id = input("Enter Device ID for API: ")
-    device_pass = getpass.getpass("Enter passcode for API: ")
-    device = device_manager.get_device_data(device_id)
+async def run_device_request(device):
     previous_status = None
-    print(os.environ.get('AUHTORIZATION_TOKEN'), os.environ.get('API_ENDPOINT'))
+    print(f"..............Processing #{device['device_id']}...........")
+    print(f"Sending request for Device: #{device['device_id']}...")
+    api_response, status_code = send_post_request(device)
+    logged_data = await log_device_data(api_response, device['device_id'])
 
-    if device:
-        if verify_password(device_pass, device[2]):
-            call_count = 0
-            await get_statistics(device[1])
-            while not stop_event.is_set():
-                print(f"Sending request for Device: #{device[1]}...")
-                api_response, status_code = device_manager.send_post_request(device[1])
-                logged_data = device_manager.log_device_data(api_response)
-                print(json.dumps(logged_data, indent=2))
+    if logged_data and logged_data.get('online') is not None:
+        if logged_data['online'] != previous_status:
+            print(f"\nStatus change detected for device {device['device_id']}. New Status: {logged_data['online']}")
+            previous_status = logged_data['online']
+            status_data = {
+                "status": logged_data['online'],
+                "device_id": logged_data['device_id'],
+                "start_date": logged_data['timestamp']
+            }
+            await send_status_notification(status_data)
+        await get_statistics(device['device_id'])
+    print(f"API Response Status Code: {status_code}")
+    print(f".............End Processing #{device['device_id']}...........\n")
 
-                # check for status change function here
-                if logged_data['Online'] != previous_status:
-                    print(f"\nStatus change detected for device {device[1]}. New Status: {logged_data['Online']}")
-                    previous_status = logged_data['Online']
-                    status_data = {
-                        "status": logged_data['Online'],
-                        "device_id": logged_data['Device ID'],
-                        "start_date": logged_data['Timestamp']
-                    }
-                    print(json.dumps(status_data, indent=2))
-                    # send post notification
-                    notification_response = await send_status_notification(status_data)
-                    print(notification_response)
+def send_post_request(device):
+    headers = {
+        "Authorization": f"Bearer {device['request_token']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "thingList": [
+            {
+                "itemType": 1,
+                "id": device['device_id']
+            }
+        ]
+    }
+    try:
+        response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
+        response.raise_for_status()  # Raise an HTTPError for bad responses
+        return response.json(), response.status_code
+    except requests.RequestException as e:
+        return {"error": f"Error: {e}"}, 500
 
-                # Calculate analysis and put in json file for easy extractions
-                print(f"API Response Status Code: {status_code}")
-                call_count += 1
-                if call_count >= 30:
-                    await get_statistics(device[1])
-                    call_count = 0
-                await asyncio.sleep(60)  # Use asyncio.sleep instead of time.sleep
-        else:
-            print("Invalid Credentials")
-    else:
-        print("Device Not Found")
+async def log_device_data(device_data, device_id=None):
+    print(f"Storing request responses for Device: #{device_id}...")
+    try:
+        gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])
+        current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
 
-async def get_statistics(device_id):    
+        timestamp = current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')
+        device_info = device_data.get("data", {}).get("thingList", [{}])[0].get("itemData", {})
+        device_id = device_info.get("deviceid", "N/A")
+        online = device_info.get("online", "N/A")
+        power = device_info.get("params", {}).get("power", "N/A")
+        voltage = device_info.get("params", {}).get("voltage", "N/A")
+        current = device_info.get("params", {}).get("current", "N/A")
+        data_dict = {
+            "timestamp": timestamp,
+            "device_id": device_id,
+            "online": online,
+            "power": power,
+            "voltage": voltage,
+            "current": current,
+        }
+
+        result = await database.insert_device_response(data_dict, device_response_data)
+        print(f"#{device_id} Device Data Logged.")
+        return result
+    except Exception as e:
+        print(f"Log Device Data: Exception - {e}")
+
+async def get_statistics(device_id):
+    print(f'Processing statistics for Device: #{device_id}')
     analyzer = DeviceStatusAnalyzer(device_id)
     stats = await analyzer.get_statistics()
-    # print(stats) save statistics to jsonfile
-    result = await load_device_info(stats, "device_stats_file.json")
+    result = await load_device_info(stats, "device_stats_file.json", device_id)
     return result
 
-async def load_device_info(stats, stats_file):
+async def load_device_info(stats, stats_file, device_id=None):
+    print(f"Updating statistics file for: #{device_id}")
     try:
         with open(stats_file, "w", encoding='utf-8') as stats_file:
             json.dump(stats, stats_file, ensure_ascii=False, indent=2)
     except FileNotFoundError:
         return None
 
-async def get_user_input(stop_event):
-    while True:
-        print("Select an option:")
-        print("1. Start Device API Call")
-        print("2. Start FastAPI Sever")
-        print("3. Exit")
+async def send_status_notification(data, notify_token=config['NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN'], api_endpoint=config['NOTIFY_STATUS_CHANGE_API_ENDPOINT']):
+    print(f'Sending Status change notification for {data["device_id"]}')
+    headers = {
+        "Authorization": f"Bearer {notify_token}",
+        "Content-Type": "application/json"
+    }
 
-        choice = input("Enter your choice (1-2): ")
-
-        if choice == "1":
-            # Run the API call asynchronously
-            await start_api_call(device_manager, stop_event)
-        elif choice == "2":
-            restart_fastapi_server()
-        elif choice == "3":
-            exit_program(stop_event)
-        else:
-            print("Invalid choice. Select enter from options 1-3.")
-
-def restart_fastapi_server():
+    payload = {
+        "start_time": data['start_date'],
+        "device_id": data['device_id'],
+        "status": data['status']
+    }
     try:
-        subprocess.run(["uvicorn", "api:app", "--reload"], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error while restarting FastAPI server: {e}")
+        response = requests.post(api_endpoint, headers=headers, json=payload)
+        response.raise_for_status()  # Raise an HTTPError for bad responses
 
-async def send_status_notification(data):
-        # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/initialize"
-        # api_endpoint = "https://lytdey.com/version-test/api/1.1/wf/update_status_change"
-        # api_endpoint = "https://lightdey.bubbleapps.io/version-test/api/1.1/wf/update_status_change/"
-        # authorization_token = "d7dcde50cf4771acfbf36e28a4c58e96"
-        api_endpoint = config["NOTIFY_STATUS_CHANGE_API_ENDPOINT"]
-        authorization_token = config["NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN"]
-        headers = {
-            "Authorization": f"Bearer {authorization_token}",
-            "Content-Type": "application/json"
-        }
+        return response.json(), response.status_code
+    except requests.RequestException as e:
+        return {"error": f"Error: {e}"}, 500
 
-        payload = {
-                    "start_time": data['start_date'],
-                    "device_id": data['device_id'],
-                    "status": data['status']
-                }
-
-        try:
-            response = requests.post(api_endpoint, headers=headers, json=payload)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
-
-            return response.json(), response.status_code
-        except requests.RequestException as e:
-            return {"error": f"Error: {e}"}, 500
-
-def exit_program(stop_event):
-    print("Exiting the program.")
-    stop_event.set()  # Set the event to signal tasks to stop
-    sys.exit()
+async def main():
+    while True:
+        devices = await get_devices()
+        active_devices = [device for device in devices if device.get("active", False)]
+        tasks = [run_device_request(device) for device in active_devices]
+        print(f"Number of devices running: {len(tasks)}")
+        await asyncio.gather(*tasks)
+        await asyncio.sleep(60)
 
 if __name__ == "__main__":
-
-    device_manager = DeviceManager(
-        api_endpoint=config["API_ENDPOINT"],
-        authorization_token=config["AUHTORIZATION_TOKEN"],
-        sqlite_db_file=config["SQLITE_DB_FILE"],
-        device_info_file=config["DEVICE_STATS_FILE"],
-        passcode_file=config["PASSCODE_FILE"]
-    )
-
-    stop_event = asyncio.Event()
-
-    # Run the user input loop in the main thread
-    asyncio.run(get_user_input(stop_event))
+    asyncio.run(main())

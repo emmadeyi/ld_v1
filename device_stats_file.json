@@ -1,0 +1,94 @@
+{
+  "energy_statistics": {
+    "device_id": "1001e2b96d",
+    "current_tariff": 68.2,
+    "day": {
+      "start_time": "2023-10-18 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "power_usage": {
+        "kwh": 0.3659438,
+        "cost": 24.96
+      }
+    },
+    "week": {
+      "start_time": "2023-10-16 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "power_usage": {
+        "kwh": 0.3659438,
+        "cost": 24.96
+      }
+    },
+    "month": {
+      "start_time": "2023-10-01 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "power_usage": {
+        "kwh": 0.3659438,
+        "cost": 24.96
+      }
+    },
+    "year": {
+      "start_time": "2023-01-01 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "power_usage": {
+        "kwh": 0.3659438,
+        "cost": 24.96
+      }
+    }
+  },
+  "status_statistics": {
+    "device_id": "1001e2b96d",
+    "current_tariff": 68.2,
+    "day": {
+      "start_time": "2023-10-18 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "daytime_online": 15163,
+      "daytime_offline": 903,
+      "daytime_connection_lost": 0,
+      "nighttime_online": 15163,
+      "nighttime_offline": 903,
+      "nighttime_connection_lost": 0,
+      "total_online": 30326,
+      "total_offline": 1806,
+      "total_connection_lost": 0
+    },
+    "week": {
+      "start_time": "2023-10-16 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "daytime_online": 15163,
+      "daytime_offline": 903,
+      "daytime_connection_lost": 0,
+      "nighttime_online": 15163,
+      "nighttime_offline": 903,
+      "nighttime_connection_lost": 0,
+      "total_online": 30326,
+      "total_offline": 1806,
+      "total_connection_lost": 0
+    },
+    "month": {
+      "start_time": "2023-10-01 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "daytime_online": 15163,
+      "daytime_offline": 903,
+      "daytime_connection_lost": 0,
+      "nighttime_online": 15163,
+      "nighttime_offline": 903,
+      "nighttime_connection_lost": 0,
+      "total_online": 30326,
+      "total_offline": 1806,
+      "total_connection_lost": 0
+    },
+    "year": {
+      "start_time": "2023-01-01 00:00:00",
+      "end_time": "2023-10-18 23:59:59",
+      "daytime_online": 15163,
+      "daytime_offline": 903,
+      "daytime_connection_lost": 0,
+      "nighttime_online": 15163,
+      "nighttime_offline": 903,
+      "nighttime_connection_lost": 0,
+      "total_online": 30326,
+      "total_offline": 1806,
+      "total_connection_lost": 0
+    }
+  }
+}

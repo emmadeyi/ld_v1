@@ -3,88 +3,78 @@ import time
 import datetime
 import json
 import asyncio
-from DeviceManager import DeviceManager
+# from DeviceManager import DeviceManager
 from dotenv import load_dotenv, dotenv_values
+from DatabaseClass import MongoDBClass
 
 # load_dotenv() 
-config = dotenv_values(".env")   
+config = dotenv_values(".env") 
+db_client = config['DATABASE_URL']
+db_name = config['DATABASE_NAME']
+device_response_data = config['DEVICE_RESPONSE_COLLECTION']
+device_info = config['DEVICE_INFO_COLLECTION']
+
+database = MongoDBClass(db_client, db_name)
 
 class DeviceStatusAnalyzer:
-    def __init__(self, device_id=None,  device_tariff=None, db_file=config["SQLITE_DB_FILE"]):
-        self.SQLITE_DB_FILE = db_file
+    def __init__(self, device_id=None,  device_tariff=None):
+        # self.SQLITE_DB_FILE = db_file
         self.device_id = device_id
 
-    async def get_status_transitions(self, start_time=None, end_time=None):
+    async def get_status_transitions(self, device_id, start_time=None, end_time=None):
+        filter_query = {'device_id': device_id}
+        projection = {"_id": 0}
+
+        if start_time is not None and end_time is not None:
+            # Add the timestamp condition for a specific time range
+            filter_query['timestamp'] = {'$gte': start_time, '$lte': end_time}
+
+        # Execute the query and return the result
+        result = await database.get_device_data(filter_query, projection, device_response_data, 'timestamp')
+
+        return result
+    
+    async def get_device_tariff(self, device_id):
         try:
-            connection = sqlite3.connect(self.SQLITE_DB_FILE)
-            cursor = connection.cursor()
+            # Assuming registration_data is a collection in your MongoDB database
+            query = {"device_id": device_id}
+            query_condition = {"tariff": 1, "_id": 0}
+            result = await database.get_device_info(query, device_info, query_condition)
 
-            if start_time is not None and end_time is not None:
-                query = "SELECT online, timestamp, device_id, power, voltage, current, name, id FROM device_data WHERE device_id = ? AND timestamp BETWEEN ? AND ? ORDER BY timestamp;"
-                cursor.execute(query, (self.device_id, start_time, end_time))
-            else:
-                query = "SELECT online, timestamp, device_id, power, voltage, current, name, id FROM device_data WHERE device_id = ? ORDER BY timestamp;"
-                cursor.execute(query, (self.device_id,))
+            return result["tariff"] if result else None
+        except Exception as e:
+            print(f"MongoDB Error: {e}")
 
-            transitions = cursor.fetchall()
-            return transitions
-        except sqlite3.Error as e:
-            print(f"SQLite Error: {e}")
-        finally:
-            cursor.close()
-            connection.close()
-
-    def get_device_tariff(self, device_id):
+    async def get_device(self, device_id):
         try:
-            connection = sqlite3.connect(self.SQLITE_DB_FILE)
-            cursor = connection.cursor()
-            query = "SELECT tariff_value FROM registration_data WHERE device_id = ?;"
-            cursor.execute(query, (device_id,))
-                
-            data = cursor.fetchone()
-            return data
-        except sqlite3.Error as e:
-            print(f"SQLite Error: {e}")
-        finally:
-            cursor.close()
-            connection.close()
+            # Assuming registration_data is a collection in your MongoDB database
+            query = {"device_id": device_id}
+            result = await database.get_device(query, device_info)
 
-    def get_device(self, device_id):
+            # return {
+            #     "id": data[0],
+            #     "device_id": data[1],
+            #     "passcode": data[2],
+            #     "tariff_value": data[3],
+            #     "token": data[4],
+            #     "api": data[5]
+            # }
+            return result if result else None
+        except Exception as e:
+            print(f"MongoDB Error: {e}")
+
+    async def get_most_recent_status_transition(self):        
         try:
-            connection = sqlite3.connect(self.SQLITE_DB_FILE)
-            cursor = connection.cursor()
-            query = "SELECT * FROM registration_data WHERE device_id = ?;"
-            cursor.execute(query, (device_id,))
-                
-            data = cursor.fetchone()
-            return {
-                "id": data[0],
-                "device_id": data[1],
-                "passcode": data[2],
-                "tariff_value": data[3],
-                "token": data[4],
-                "api": data[5]
-            }
-        except sqlite3.Error as e:
-            print(f"SQLite Error: {e}")
-        finally:
-            cursor.close()
-            connection.close()
+            query = {"device_id": self.device_id}
+            projection = {"_id": 0}
 
-    async def get_most_recent_status_transition(self):
-        try:
-            connection = sqlite3.connect(self.SQLITE_DB_FILE)
-            cursor = connection.cursor()
-            query = "SELECT online, timestamp, device_id, power, voltage, current, name, id FROM device_data WHERE device_id = ? ORDER BY timestamp DESC LIMIT 1;"
-            cursor.execute(query, (self.device_id,))
+            result = await database.get_last_device_data(query, device_response_data, projection)
 
-            transition = cursor.fetchone()
-            return transition
-        except sqlite3.Error as e:
-            print(f"SQLite Error: {e}")
-        finally:
-            cursor.close()
-            connection.close()
+            for transition in result:
+                return transition
+
+        except Exception as e:
+            print(f"MongoDB Error: {e}")
 
     async def calculate_status_durations(self, transitions):
         durations = []
@@ -92,7 +82,9 @@ class DeviceStatusAnalyzer:
         current_status = None
         most_recent_time = None
         # online, timestamp, device_id, power, voltage, current, name, id
-        for status, timestamp, _, _, _, _, _, _ in transitions:
+        for transition in transitions:
+            status = transition['online']
+            timestamp = transition['timestamp']
             if current_status is None:
                 current_status = status
                 start_time = timestamp
@@ -139,7 +131,7 @@ class DeviceStatusAnalyzer:
         else:
             # This block is executed if no exception occurs in the try block
             return {
-                "status": True if most_recent_status == '1' else False if most_recent_status == '0' else 'Connection lost',
+                "status": True if most_recent_status == True else False if most_recent_status == False else 'Connection lost',
                 "duration": await self.format_duration_to_hours_minutes_sec(most_recent_duration_hours, most_recent_duration_minutes, most_recent_duration_seconds),
                 "start_date": last_start_date,
                 "start_time": last_start_time,
@@ -167,16 +159,13 @@ class DeviceStatusAnalyzer:
                 })
         
             return {"all_status_transitions":status_transitions, "all_status_analysis":all_status_analysis}
-            # last_updated_status_statistics = await self.get_current_status(status_durations)
-        
-            # return status_transitions, last_updated_status_statistics, all_status_analysis
         else:
             return []
         
     async def analyze_current_status(self):
         status_transitions = await self.get_status_transitions(self.device_id)
         if status_transitions:
-            status_durations = await self.calculate_status_durations(status_transitions)        
+            status_durations = await self.calculate_status_durations(status_transitions) 
             last_updated_status_statistics = await self.get_current_status(status_durations)
         
             return last_updated_status_statistics
@@ -222,16 +211,16 @@ class DeviceStatusAnalyzer:
     async def calculate_daytime_hours(self, duration_transitions, status):
         daytime_records = []
         for transition in duration_transitions:
-            if transition[0] == status:
-                daytime_records = [ record for record in duration_transitions if 6 <= int(record[1].split(' ')[1].split(':')[0]) < 18 ]
+            if transition['online'] == status:
+                daytime_records = [ record for record in duration_transitions if 0 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 18 ]
 
         return daytime_records
 
     async def calculate_nighttime_hours(self, duration_transitions, status):
         nighttime_records = []
         for transition in duration_transitions:
-            if transition[0] == status:
-                nighttime_records = [ record for record in duration_transitions if 18 <= int(record[1].split(' ')[1].split(':')[0]) or int(record[1].split(' ')[1].split(':')[0]) < 6]
+            if transition['online'] == status:
+                nighttime_records = [ record for record in duration_transitions if 17 <= int(record['timestamp'].split(' ')[1].split(':')[0]) or int(record['timestamp'].split(' ')[1].split(':')[0]) < 24]
 
         return nighttime_records
     
@@ -243,7 +232,7 @@ class DeviceStatusAnalyzer:
             duration_end = duration[2]  
             duration_transitions = []
             for transition in transitions:
-                if transition[1] >= duration_start and transition[1] <= duration_end:                    
+                if transition['timestamp'] >= duration_start and transition['timestamp'] <= duration_end:                    
                     duration_transitions.append(transition)            
             
             # split duration transitions into daytime and nighttime durations
@@ -254,7 +243,7 @@ class DeviceStatusAnalyzer:
             nighttime_durations = await self.calculate_status_durations(nighttime_transitions)
 
             for duration in daytime_durations:
-                day_durations.append(duration)
+                day_durations.append(duration) 
             for duration in nighttime_durations:
                 night_durations.append(duration)
         
@@ -272,9 +261,9 @@ class DeviceStatusAnalyzer:
         offline_duration = 0
         disconnected_duration = 0
         for duration in durations:
-            if duration[0] == '1':
+            if duration[0] == True:
                 online_duration += duration[3] * 3600 + duration[4] * 60 + duration[5]
-            elif duration[0] == '0':
+            elif duration[0] == False:
                 offline_duration += duration[3] * 3600 + duration[4] * 60 + duration[5]
             else:
                 disconnected_duration += duration[3] * 3600 + duration[4] * 60 + duration[5]
@@ -283,11 +272,9 @@ class DeviceStatusAnalyzer:
 
     async def calculate_statistics(self, start_time=None, end_time=None):
         # Fetch transitions within the specified time range
-        transitions = await self.get_status_transitions(start_time, end_time)
-
+        transitions = await self.get_status_transitions(self.device_id, start_time, end_time)
         # Calculate status durations for the specified time range
         status_durations = await self.calculate_status_durations(transitions)
-
         # Get day and night durations
         durations = await self.get_day_and_night_durations(status_durations, transitions)
         day_durations = durations[0]
@@ -302,43 +289,6 @@ class DeviceStatusAnalyzer:
         
         # get total daytime and nighttime statistics in seconds 
         total_statistics = await self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
-
-        # result = {
-        #     'device_id':self.device_id,
-        #     'duration':{                
-        #         'start_time': transitions[0][1] if start_time == None else start_time,
-        #         'end_time': transitions[-1][1] if end_time == None else end_time,
-        #     },
-        #     'daytime_statistics':{
-        #         "daytime_online":await self.format_duration(daytime_statistics[0]), 
-        #         "daytime_offline":await self.format_duration(daytime_statistics[1]), 
-        #         "daytime_connection_lost":await self.format_duration(daytime_statistics[2])
-        #     },
-        #     'nighttime_statistics':{
-        #         "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
-        #         "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
-        #         "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2])
-        #     },
-        #     'total_statistics':{
-        #         "total_online":await self.format_duration(total_statistics[0]), 
-        #         "total_offline":await self.format_duration(total_statistics[1]), 
-        #         "total_connection_lost":await self.format_duration(total_statistics[2])
-        #     }
-        # }
-
-        # result = [{
-        #     'start_time': transitions[0][1] if start_time == None else start_time,
-        #     'end_time': transitions[-1][1] if end_time == None else end_time,
-        #     "daytime_online":await self.format_duration(daytime_statistics[0]), 
-        #     "daytime_offline":await self.format_duration(daytime_statistics[1]), 
-        #     "daytime_connection_lost":await self.format_duration(daytime_statistics[2]),
-        #     "nighttime_online":await self.format_duration(nighttime_statistics[0]), 
-        #     "nighttime_offline":await self.format_duration(nighttime_statistics[1]), 
-        #     "nighttime_connection_lost":await self.format_duration(nighttime_statistics[2]),
-        #     "total_online":await self.format_duration(total_statistics[0]), 
-        #     "total_offline":await self.format_duration(total_statistics[1]),
-        #     "total_connection_lost":await self.format_duration(total_statistics[2])
-        # }]
         result = {
             'start_time': transitions[0][1] if start_time == None else start_time,
             'end_time': transitions[-1][1] if end_time == None else end_time,
@@ -353,67 +303,31 @@ class DeviceStatusAnalyzer:
             "total_connection_lost": total_statistics[2]
         }
 
-        # print(f"Status stats for: {start_time} - {end_time} processed")
-
         return result
     
     async def calculate_energy_statistics(self, start_time=None, end_time=None):
         # Fetch transitions within the specified time range
-        transitions = await self.get_status_transitions(start_time, end_time)
+        transitions = await self.get_status_transitions(self.device_id, start_time, end_time)
         # 0 = status, 1 = timestamp, 2 = device_id, 3 = power, 4 = voltage, 5 = current, 6 = name, 7 = id
         # Calculate status durations for the specified time range
-        # device_tariff = self.get_device_tariff(self.device_id)
-        tariff = self.get_device_tariff(self.device_id)[0]
-        # tariff = device_tariff[-1]
+        # tariff = self.get_device_tariff(self.device_id)[0]
+        tariff = await self.get_device_tariff(self.device_id)
         total_online_energy = 0
         total_offline_energy = 0
         total_disconnected_energy = 0
         for transition in transitions:
-            if transition[0] == '1':
+            if transition['online'] == True:
                 # calculate total online energy overrall
-                total_online_energy += float(transition[3])
-            elif transition[0] == '0':
+                total_online_energy += float(transition['power'])
+            elif transition['online'] == False:
                 # calculate total offline energy 
-                total_offline_energy += float(transition[3])
-            elif transition[0] == 'N/A':
+                total_offline_energy += float(transition['power'])
+            elif transition['online'] == 'N/A':
                 # calculate total disconnected energy 
-                total_disconnected_energy += float(transition[3])
+                total_disconnected_energy += float(transition['power'])
             else:
                 pass
-
-        # status_durations = self.calculate_status_durations(transitions)
-        # # Get day and night durations
-        # durations = self.get_day_and_night_durations(status_durations, transitions)
-        # day_durations = durations[0]
-        # night_durations = durations[1]
-        
-        # # get total daytime statistics in seconds
-        # daytime_statistics = self.get_statistics_in_seconds(day_durations)
-                
-        # # get total nighttime statistics in seconds  
-        # nighttime_statistics = self.get_statistics_in_seconds(night_durations)
-        
-        
-        # # get total daytime and nighttime statistics in seconds 
-        # total_statistics = self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
         kwh = round(await self.convert_energy_to_KWh(total_online_energy), 7)
-        # result = {
-        #             'device_id':self.device_id,
-        #             'device_tariff':self.get_device_tariff(self.device_id),
-        #             'duration':{
-        #                 'start_time': transitions[0][1] if start_time == None else start_time,
-        #                 'end_time': transitions[-1][1] if end_time == None else end_time,
-        #             },
-        #             'power_usage':{
-        #                 'total_online_energy': {
-        #                     "status": True, 
-        #                     "kwh": kwh,
-        #                     "cost": round(kwh * float(tariff), 2)},
-        #                 'total_offline_energy': {
-        #                     "status": False,
-        #                     "kwh": round(await self.convert_energy_to_KWh(total_offline_energy), 7)}
-        #             }
-        #         }
 
         result = {
                     'start_time': transitions[0][1] if start_time == None else start_time,
@@ -423,10 +337,6 @@ class DeviceStatusAnalyzer:
                         "cost": round(kwh * float(tariff), 2),
                     }
                 }
-
-
-        # print(f"Energy stats for: {start_time} - {end_time} processed")
-
         return result
     
     async def convert_energy_to_KWh(self, energy_value):
@@ -447,12 +357,10 @@ class DeviceStatusAnalyzer:
         end_day = await self.get_day_range(end_day_difference)
         start_time_current_day = f"{start_day} 00:00:00"
         end_time_current_day = f"{end_day} 23:59:59"
-        # print(f"Processing Status Statistics for: {start_time_current_day} - {end_time_current_day}")
         
         return await self.calculate_statistics(start_time_current_day, end_time_current_day)
     
-    async def get_total_status_statistics(self):     
-        # print(f"Processing Total Status Statistics")       
+    async def get_total_status_statistics(self):       
         return await self.calculate_statistics()
     
     async def get_energy_statistics_of_day_range(self, start_day_difference=0, end_day_difference=0):
@@ -462,12 +370,9 @@ class DeviceStatusAnalyzer:
         end_day = datetime.date.today() - datetime.timedelta(days=end_day_difference)
         start_time_current_day = f"{start_day} 00:00:00"
         end_time_current_day = f"{end_day} 23:59:59"
-        
-        # print(f"Processing Energy Statistics for: {start_time_current_day} - {end_time_current_day}")
         return await self.calculate_energy_statistics(start_time_current_day, end_time_current_day)
     
-    async def get_total_energy_statistics(self):        
-        # print(f"Processing Total Energy Statistics")
+    async def get_total_energy_statistics(self):    
         return await self.calculate_energy_statistics()
     
     async def get_day_difference_from_start_of_week(self):
@@ -545,7 +450,7 @@ class DeviceStatusAnalyzer:
                     "energy_statistics": 
                     {
                         "device_id": self.device_id,
-                        "current_tariff": self.get_device_tariff(self.device_id)[0],
+                        "current_tariff": await self.get_device_tariff(self.device_id),
                             "day": await self.get_energy_statistics_of_day_range(),
                             "week": await self.get_energy_statistics_of_day_range(start_of_week),
                             "month": await self.get_energy_statistics_of_day_range(start_of_month),
@@ -554,7 +459,7 @@ class DeviceStatusAnalyzer:
                     "status_statistics": 
                     {
                         "device_id": self.device_id,
-                        "current_tariff": self.get_device_tariff(self.device_id)[0],
+                        "current_tariff": await self.get_device_tariff(self.device_id),
                         "day": await self.get_statistics_of_day_range(),
                         "week": await self.get_statistics_of_day_range(start_of_week),
                         "month": await self.get_statistics_of_day_range(start_of_month),
@@ -593,8 +498,10 @@ async def main():
             await analyzer.get_statistics()
             time.sleep(5)
 
-if __name__ == "__main__":
-    statistics_result = asyncio.run(main())
+# if __name__ == "__main__":
+#     analyzer = DeviceStatusAnalyzer('1001e2b96d')
+#     result = asyncio.run(analyzer.get_most_recent_status_transition())
+#     print(result)
 
     
     

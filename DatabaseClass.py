@@ -1,0 +1,206 @@
+from pymongo import MongoClient, ReturnDocument
+from dotenv import dotenv_values
+import asyncio
+
+# load_dotenv() 
+config = dotenv_values(".env") 
+db_client = config['DATABASE_URL']
+db_name = config['DATABASE_NAME']
+
+class MongoDBClass:
+    def __init__(self, database_url, database_name):
+        self.client = MongoClient(database_url)
+        self.db = self.client[database_name]
+
+    async def register_device(self, device_data, collection_name):
+        devices_collection = self.db[collection_name]
+        result = devices_collection.insert_one(device_data)
+        # Check if the insertion was successful
+        if result.acknowledged:
+            # Fetch the inserted document using the inserted_id
+            inserted_document = devices_collection.find_one({"_id": result.inserted_id})
+
+            # Convert ObjectId to string for serialization
+            inserted_document["_id"] = str(inserted_document["_id"])
+
+            return inserted_document
+
+        # Handle the case where insertion failed
+        return None  # You might want to raise an exception or handle this differently
+    
+    async def insert_device_response(self, device_data, collection_name):
+        devices_collection = self.db[collection_name]
+        result = devices_collection.insert_one(device_data)
+        # Check if the insertion was successful
+        if result.acknowledged:
+            # Fetch the inserted document using the inserted_id
+            inserted_document = devices_collection.find_one({"_id": result.inserted_id})
+
+            # Convert ObjectId to string for serialization
+            inserted_document["_id"] = str(inserted_document["_id"])
+
+            return inserted_document
+
+        # Handle the case where insertion failed
+        return None  # You might want to raise an exception or handle this differently
+
+    async def get_single_device(self, device_id, collection_name):
+        devices_collection = self.db[collection_name]
+        device = devices_collection.find_one({'device_id': device_id})
+        # Convert ObjectId to string for serialization
+        if device and '_id' in device:
+            device['_id'] = str(device['_id'])
+        
+        return device
+    
+    async def get_device(self, filter, collection_name):
+        devices_collection = self.db[collection_name]
+        device = devices_collection.find_one(filter)
+        # Convert ObjectId to string for serialization
+        if device and '_id' in device:
+            device['_id'] = str(device['_id'])
+        
+        return device
+    
+    async def get_device_info(self, filter, collection_name, condition=None):
+        devices_collection = self.db[collection_name]
+        device = devices_collection.find_one(filter, condition)
+        # Convert ObjectId to string for serialization
+        if device and '_id' in device:
+            device['_id'] = str(device['_id'])
+        
+        return device
+
+    async def get_all_devices(self, collection_name):
+        devices_collection = self.db[collection_name]
+        
+        # Fetch all devices
+        devices = list(devices_collection.find())
+
+        # Convert ObjectId to string for serialization in each document
+        for device in devices:
+            if '_id' in device:
+                device['_id'] = str(device['_id'])
+
+        return devices
+    
+    async def get_device_data(self, query_filter, condition, collection_name, sort):
+        data_collection = self.db[collection_name]
+        
+        # Fetch all devices
+        data = list(data_collection.find(query_filter, condition).sort(sort))
+
+        # Convert ObjectId to string for serialization in each document
+        for d in data:
+            if '_id' in d:
+                d['_id'] = str(d['_id'])
+
+        return data
+    
+    async def get_last_device_data(self, query_filter, collection_name, condition):
+        data_collection = self.db[collection_name]
+        
+        # Fetch all devices
+        data = list(data_collection.find(query_filter, condition).sort("timestamp", -1).limit(1))
+
+        # Convert ObjectId to string for serialization in each document
+        for d in data:
+            if '_id' in d:
+                d['_id'] = str(d['_id'])
+
+        return data
+
+    async def device_exists(self, device_id, collection_name):
+        devices_collection = self.db[collection_name]
+        return devices_collection.count_documents({'device_id': device_id}) > 0
+
+    async def update_device(self, filter_query, update_query, collection_name):
+        # Get the specified collection
+        collection = self.db[collection_name]
+
+        # Perform the update and return the modified document
+        updated_document = collection.find_one_and_update(
+            filter_query,
+            {'$set': update_query},
+            return_document=ReturnDocument.AFTER  # Specify that the modified document should be returned
+        )
+
+        if updated_document:
+            # Convert ObjectId to string for serialization
+            updated_document['_id'] = str(updated_document['_id'])
+            return updated_document
+
+        return f"Device not found"
+
+    async def delete_device(self, device_id, collection_name):
+        devices_collection = self.db[collection_name]
+        result = devices_collection.delete_one({'device_id': device_id})
+        return result.deleted_count > 0
+    
+    def clear_database(database_url, database_name):
+        # Connect to MongoDB
+        client = MongoClient(database_url)
+        db = client[database_name]
+
+        # List all collections in the database
+        collections = db.list_collection_names()
+
+        # Iterate through collections and delete all documents
+        for collection_name in collections:
+            collection = db[collection_name]
+            collection.delete_many({})
+
+        print(f"All documents in the database '{database_name}' have been deleted.")
+
+        # Close the connection
+        client.close()
+    
+    def clear_collection(database_url, database_name, collection_name):
+        # Connect to MongoDB
+        client = MongoClient(database_url)
+        db = client[database_name]
+
+        # Get the specified collection
+        collection = db[collection_name]
+
+        # Delete all documents in the collection
+        collection.delete_many({})
+
+        print(f"All documents in the collection '{collection_name}' have been deleted.")
+
+        # Close the connection
+        client.close()
+
+    def initialize_database(self, collection_name):
+        # Get the specified collection
+        collection = self.db[collection_name]
+
+        # Clear (delete all documents from) the existing collection
+        collection.delete_many({})
+
+        print(f"Collection '{collection_name}' cleared.")
+
+        # Print a message indicating the initialization
+        print(f"Database '{self.db.name}' and collection '{collection_name}' initialized.")
+
+    def close_connection(self):
+        self.client.close()
+
+def init_database():
+    db = MongoDBClass(db_client, db_name)
+    # init DEVICE_INFO_COLLECTION
+    collection_name = config['DEVICE_INFO_COLLECTION']
+    db.initialize_database(collection_name)
+    # init DEVICE_RESPONSE_COLLECTION
+    collection_name = config['DEVICE_RESPONSE_COLLECTION']
+    db.initialize_database(collection_name)
+    # init DEVICE_STATS_COLLECTION
+    collection_name = config['DEVICE_STATS_COLLECTION']
+    db.initialize_database(collection_name)
+
+    # Close the database connection
+    db.close_connection()
+
+# Example Usage:
+if __name__ == "__main__":
+    init_database()
