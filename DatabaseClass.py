@@ -1,4 +1,5 @@
 from pymongo import MongoClient, ReturnDocument
+from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import dotenv_values
 import asyncio
 
@@ -9,7 +10,8 @@ db_name = config['DATABASE_NAME']
 
 class MongoDBClass:
     def __init__(self, database_url, database_name):
-        self.client = MongoClient(database_url)
+        self.client = AsyncIOMotorClient(database_url)
+        # self.client = MongoClient(database_url)
         self.db = self.client[database_name]
 
     async def register_device(self, device_data, collection_name):
@@ -122,7 +124,7 @@ class MongoDBClass:
         updated_document = collection.find_one_and_update(
             filter_query,
             {'$set': update_query},
-            return_document=ReturnDocument.AFTER  # Specify that the modified document should be returned
+            return_document=True  # Specify that the modified document should be returned
         )
 
         if updated_document:
