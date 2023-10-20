@@ -4,7 +4,6 @@ import json
 from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
 
-# load_dotenv() 
 config = dotenv_values(".env") 
 db_client = config['DATABASE_URL']
 db_name = config['DATABASE_NAME']
@@ -15,7 +14,6 @@ database = MongoDBClass(db_client, db_name)
 
 class DeviceStatusAnalyzer:
     def __init__(self, device_id=None,  device_tariff=None):
-        # self.SQLITE_DB_FILE = db_file
         self.device_id = device_id
 
     async def get_status_transitions(self, device_id, start_time=None, end_time=None):
@@ -47,15 +45,6 @@ class DeviceStatusAnalyzer:
             # Assuming registration_data is a collection in your MongoDB database
             query = {"device_id": device_id}
             result = await database.get_device(query, device_info)
-
-            # return {
-            #     "id": data[0],
-            #     "device_id": data[1],
-            #     "passcode": data[2],
-            #     "tariff_value": data[3],
-            #     "token": data[4],
-            #     "api": data[5]
-            # }
             return result if result else None
         except Exception as e:
             print(f"MongoDB Error: {e}")
@@ -78,7 +67,6 @@ class DeviceStatusAnalyzer:
         start_time = None
         current_status = None
         most_recent_time = None
-        # online, timestamp, device_id, power, voltage, current, name, id
         for transition in transitions:
             status = transition['online']
             timestamp = transition['timestamp']
@@ -115,7 +103,6 @@ class DeviceStatusAnalyzer:
         return f"{duration_hours} hours, {duration_minutes} minutes, {duration_seconds} seconds"
 
     async def get_current_status(self, status_durations):
-        # if status_durations:
         try:
             most_recent_status, most_recent_start_time, most_recent_most_recent_time, most_recent_duration_hours, most_recent_duration_minutes, most_recent_duration_seconds =  status_durations[-1]
             last_start_date, last_start_time = await self.separate_date_and_time(most_recent_start_time)
@@ -429,27 +416,6 @@ class SetEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return list(obj)
         return super().default(obj)
-    
-async def main():
-    device_id = "1001e2b96d"
-    # Your registration/ Authentication logic here
-    device_auth = True
-    # device_id = input("Enter device ID: ")
-    analyzer = DeviceStatusAnalyzer(device_id)   
-    # Analyze status for the entire dataset
-    analyzed_data = await analyzer.analyze_status()
-
-    if analyzed_data: #replace with device id validation
-        last_updated_status_analysis = analyzed_data[1]
-        historical_status_analysis = analyzed_data[2]
-        print(json.dumps(last_updated_status_analysis, indent=2))
-    else:
-        print(f"No recorded Data for device ID: {device_id}")
-    
-    if device_auth == True:
-        while True:
-            await analyzer.get_statistics()
-            time.sleep(5)
 
     
     

@@ -4,17 +4,10 @@ from fastapi.encoders import jsonable_encoder
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
 import secrets
 from fastapi.responses import JSONResponse
-import json
-import requests
-import asyncio
-import subprocess
-from dotenv import load_dotenv, dotenv_values
+from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
-import datetime
-import pytz
 import get_device_auth_token
 
-# load_dotenv() 
 config = dotenv_values(".env")   
 
 app = FastAPI()
@@ -25,7 +18,6 @@ device_response_data = config['DEVICE_RESPONSE_COLLECTION']
 device_stats_data = config['DEVICE_STATS_COLLECTION']
 device_stats_file = config["DEVICE_STATS_FILE"]
 api_endpoint=config["API_ENDPOINT"]
-authorization_token=config["AUHTORIZATION_TOKEN"]
 
 database = MongoDBClass(db_client, db_name)
 

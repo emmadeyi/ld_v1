@@ -16,7 +16,6 @@ device_response_data = config['DEVICE_RESPONSE_COLLECTION']
 device_stats_data = config['DEVICE_STATS_COLLECTION']
 device_stats_file = config["DEVICE_STATS_FILE"]
 api_endpoint = config["API_ENDPOINT"]
-authorization_token = config["AUHTORIZATION_TOKEN"]
 gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])
 
 database = MongoDBClass(db_client, db_name)
