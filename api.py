@@ -104,24 +104,19 @@ async def register_device(device_id: str, tariff: float, app_id: str = None, app
         raise HTTPException(status_code=400, detail="Device already registered")
     print()
     request_token = access_token
-    appid = app_id
-    # appid = "ZoyNpbjbUyPRa2Uy4I2iEa362mKzOf3N"
     nonce = get_device_auth_token.generate_random_string(8)
     api_endpoint = "https://lytdey.proxy.beeceptor.com/v2/user/oauth/token"
-    code = app_code
-    # code = "79f9cb91-a621-4613-88e5-faa9caa8dedc"
     data = {
-            "code":f"{code}",
+            "code":f"{app_code}",
             "redirectUrl":"https://lytdey.com/redirect_url",
             "grantType":"authorization_code"
         }
     secret = app_secret
-    # secret = 'k6qjuyjeHHsIpluEmvsPVAvzoKIzQY96'
     if request_token is not None:
         device_auth_token = request_token
     elif request_token is None and app_id is not None and app_code is not None and app_secret is not None:
         signature = get_device_auth_token.get_signature(secret, data)
-        device_request_token = get_device_auth_token.get_auth_token(signature, appid, nonce, api_endpoint, data)
+        device_request_token = get_device_auth_token.get_auth_token(signature, app_id, nonce, api_endpoint, app_code)
         if device_request_token[0].get('data'):
             device_auth_token = device_request_token[0].get('data')
         else:
@@ -172,7 +167,7 @@ async def get_device_tariff(device_id: str = Depends(get_device_tariff)):
     tariff = device_id
     return {"message": "Device Tariff Fetched", "Tariff": tariff}
 
-# Protected Routes
+################ Protected Routes
 # Get device tarrif
 @app.put("/update_device_tariff/")
 async def update_device_tariff(tariff: float, device: str = Depends(get_current_device)):
