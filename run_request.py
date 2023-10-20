@@ -1,5 +1,3 @@
-from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks
-from fastapi.security import OAuth2AuthorizationCodeBearer
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
 from fastapi.responses import JSONResponse
 import json
@@ -19,6 +17,7 @@ device_stats_data = config['DEVICE_STATS_COLLECTION']
 device_stats_file = config["DEVICE_STATS_FILE"]
 api_endpoint = config["API_ENDPOINT"]
 authorization_token = config["AUHTORIZATION_TOKEN"]
+gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])
 
 database = MongoDBClass(db_client, db_name)
 
@@ -28,7 +27,9 @@ async def get_devices():
 
 async def run_device_request(device):
     previous_status = None
-    print(f"..............Processing #{device['device_id']}...........")
+    
+    current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
+    print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Sending request for Device: #{device['device_id']}...")
     api_response, status_code = send_post_request(device)
     logged_data = await log_device_data(api_response, device['device_id'])
@@ -44,7 +45,7 @@ async def run_device_request(device):
             }
             await send_status_notification(status_data)
         await get_statistics(device['device_id'])
-    print(f"API Response Status Code: {status_code}")
+    # print(f"API Response Status Code: {status_code}")
     print(f".............End Processing #{device['device_id']}...........\n")
 
 def send_post_request(device):
@@ -68,11 +69,9 @@ def send_post_request(device):
         return {"error": f"Error: {e}"}, 500
 
 async def log_device_data(device_data, device_id=None):
-    print(f"Storing request responses for Device: #{device_id}...")
-    try:
-        gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])
+    # print(f"Storing request responses for Device: #{device_id}...")
+    try:        
         current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
-
         timestamp = current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')
         device_info = device_data.get("data", {}).get("thingList", [{}])[0].get("itemData", {})
         device_id = device_info.get("deviceid", "N/A")
@@ -90,20 +89,20 @@ async def log_device_data(device_data, device_id=None):
         }
 
         result = await database.insert_device_response(data_dict, device_response_data)
-        print(f"#{device_id} Device Data Logged.")
+        print(f"#{device_id} Data Logged.")
         return result
     except Exception as e:
         print(f"Log Device Data: Exception - {e}")
 
 async def get_statistics(device_id):
-    print(f'Processing statistics for Device: #{device_id}')
+    # print(f'Processing statistics for Device: #{device_id}')
     analyzer = DeviceStatusAnalyzer(device_id)
     stats = await analyzer.get_statistics()
     result = await load_device_info(stats, "device_stats_file.json", device_id)
     return result
 
 async def load_device_info(stats, stats_file, device_id=None):
-    print(f"Updating statistics file for: #{device_id}")
+    # print(f"Updating statistics file for: #{device_id}")
     try:
         with open(stats_file, "w", encoding='utf-8') as stats_file:
             json.dump(stats, stats_file, ensure_ascii=False, indent=2)

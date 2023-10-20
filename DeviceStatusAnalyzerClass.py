@@ -163,6 +163,7 @@ class DeviceStatusAnalyzer:
         status_transitions = await self.get_status_transitions(self.device_id)
         if status_transitions:
             status_durations = await self.calculate_status_durations(status_transitions) 
+            print(status_durations)
             last_updated_status_statistics = await self.get_current_status(status_durations)
         
             return last_updated_status_statistics
@@ -304,10 +305,7 @@ class DeviceStatusAnalyzer:
     
     async def calculate_energy_statistics(self, start_time=None, end_time=None):
         # Fetch transitions within the specified time range
-        transitions = await self.get_status_transitions(self.device_id, start_time, end_time)
-        # 0 = status, 1 = timestamp, 2 = device_id, 3 = power, 4 = voltage, 5 = current, 6 = name, 7 = id
-        # Calculate status durations for the specified time range
-        # tariff = self.get_device_tariff(self.device_id)[0]
+        transitions = await self.get_status_transitions(self.device_id, start_time, end_time)        
         tariff = await self.get_device_tariff(self.device_id)
         total_online_energy = 0
         total_offline_energy = 0
@@ -405,44 +403,7 @@ class DeviceStatusAnalyzer:
         start_of_year = await self.get_day_difference_from_start_of_year()
 
         print("Loading Statistics.............")
-        
-        # tasks = [
-        #     # current energy statistics
-        #     self.get_energy_statistics_of_day_range(),
-        #     self.get_statistics_of_day_range(),
-        #     self.get_energy_statistics_of_day_range(start_of_week),
-        #     self.get_statistics_of_day_range(start_of_week),
-        #     self.get_energy_statistics_of_day_range(start_of_month),
-        #     self.get_statistics_of_day_range(start_of_month),
-        #     self.get_energy_statistics_of_day_range(start_of_year),
-        #     self.get_statistics_of_day_range(start_of_year)
-        # ]
-        # result = {            
-        #     "day": [
-        #         {
-        #             "energy_statistics": await self.get_energy_statistics_of_day_range(),
-        #             "status_statistics": await self.get_statistics_of_day_range()
-        #         }
-        #     ],
-        #     "week": [
-        #         {
-        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_week),
-        #             "status_statistics": await self.get_statistics_of_day_range(start_of_week)
-        #         }
-        #     ],
-        #     "month": [
-        #         {
-        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_month),
-        #             "status_statistics": await self.get_statistics_of_day_range(start_of_month)
-        #         }
-        #     ],
-        #     "year": [
-        #         {
-        #             "energy_statistics": await self.get_energy_statistics_of_day_range(start_of_year),
-        #             "status_statistics": await self.get_statistics_of_day_range(start_of_year)
-        #         }
-        #     ]
-        # }
+
         result = {
                     "energy_statistics": 
                     {
@@ -463,8 +424,7 @@ class DeviceStatusAnalyzer:
                         "year": await self.get_statistics_of_day_range(start_of_year)
                     }                
                 }
-        # Run the tasks concurrently
-        # result = await asyncio.gather(*tasks)
+        
         return result
 
 # Define a custom encoder to handle sets
@@ -494,11 +454,6 @@ async def main():
         while True:
             await analyzer.get_statistics()
             time.sleep(5)
-
-# if __name__ == "__main__":
-#     analyzer = DeviceStatusAnalyzer('1001e2b96d')
-#     result = asyncio.run(analyzer.get_most_recent_status_transition())
-#     print(result)
 
     
     

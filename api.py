@@ -12,6 +12,7 @@ from dotenv import load_dotenv, dotenv_values
 from DatabaseClass import MongoDBClass
 import datetime
 import pytz
+import get_device_auth_token
 
 # load_dotenv() 
 config = dotenv_values(".env")   
@@ -104,15 +105,46 @@ async def remove_device(device_id):
 
 # Register new device
 @app.post("/register/")
-async def register_device(device_id: str, tariff: float = None, refresh_token: str = None, request_token: str = None, notify_token = None):
+async def register_device(device_id: str, tariff: float, app_id: str = None, app_secret: str = None,
+                          app_code: str = None, refresh_token: str = None, 
+                          access_token: str = None, notify_token = None):
     if await database.device_exists(device_id, device_info):
         raise HTTPException(status_code=400, detail="Device already registered")
+    print()
+    request_token = access_token
+    appid = app_id
+    # appid = "ZoyNpbjbUyPRa2Uy4I2iEa362mKzOf3N"
+    nonce = get_device_auth_token.generate_random_string(8)
+    api_endpoint = "https://lytdey.proxy.beeceptor.com/v2/user/oauth/token"
+    code = app_code
+    # code = "79f9cb91-a621-4613-88e5-faa9caa8dedc"
+    data = {
+            "code":f"{code}",
+            "redirectUrl":"https://lytdey.com/redirect_url",
+            "grantType":"authorization_code"
+        }
+    secret = app_secret
+    # secret = 'k6qjuyjeHHsIpluEmvsPVAvzoKIzQY96'
+    if request_token is not None:
+        device_auth_token = request_token
+    elif request_token is None and app_id is not None and app_code is not None and app_secret is not None:
+        signature = get_device_auth_token.get_signature(secret, data)
+        device_request_token = get_device_auth_token.get_auth_token(signature, appid, nonce, api_endpoint, data)
+        if device_request_token[0].get('data'):
+            device_auth_token = device_request_token[0].get('data')
+        else:
+            return {"message": "Error getting request auth token. You can input it manually if generated", "data": device_request_token[0].get('data')}
+    else:
+        return {"message": "Invalid access auth token"}
     # Register the device
     device_data = {
         "device_id": device_id, 
         "tariff": tariff, 
+        "app_id": app_id, 
+        "app_secret": app_secret, 
+        "app_code": app_code, 
         "bearer_token": generate_bearer_token(),
-        "request_token": request_token,
+        "request_token": device_auth_token,
         "notify_token": notify_token,
         "refresh_token": refresh_token,
         "active": True,
@@ -137,18 +169,21 @@ async def get_all_devices():
     return result
 
 # Get device bearer token
-@app.get("/device_token/{device}")
-async def get_device_token(token: str = Depends(get_device_token)):
+@app.get("/device_token/{device_id}")
+async def get_device_token(device_id: str = Depends(get_device_token)):
+    token = device_id
     return {"message": "Device Token Fetched", "token": token}
 
 # Get device tarrif
 @app.get("/device_tariff/{device_id}")
-async def get_device_tariff(tariff: str = Depends(get_device_tariff)):
+async def get_device_tariff(device_id: str = Depends(get_device_tariff)):
+    tariff = device_id
     return {"message": "Device Tariff Fetched", "Tariff": tariff}
 
+# Protected Routes
 # Get device tarrif
-@app.put("/update_device_tariff/{device_id}")
-async def update_device_tariff(tariff: float, device: str = Depends(get_device_with_id)):
+@app.put("/update_device_tariff/")
+async def update_device_tariff(tariff: float, device: str = Depends(get_current_device)):
     filter_query = {'device_id': device["device_id"]} 
     update_query = {"tariff": tariff}
     modified_data = await update_device_data(filter_query, update_query)

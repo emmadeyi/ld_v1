@@ -41,7 +41,6 @@ class MongoDBClass:
 
             # Convert ObjectId to string for serialization
             inserted_document["_id"] = str(inserted_document["_id"])
-
             return inserted_document
 
         # Handle the case where insertion failed
