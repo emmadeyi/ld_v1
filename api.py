@@ -102,7 +102,6 @@ async def register_device(device_id: str, tariff: float, app_id: str = None, app
                           access_token: str = None, notify_token = None):
     if await database.device_exists(device_id, device_info):
         raise HTTPException(status_code=400, detail="Device already registered")
-    print()
     request_token = access_token
     nonce = get_device_auth_token.generate_random_string(8)
     api_endpoint = "https://lytdey.proxy.beeceptor.com/v2/user/oauth/token"

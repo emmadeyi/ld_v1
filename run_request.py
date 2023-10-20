@@ -28,6 +28,7 @@ async def run_device_request(device):
     query = {"device_id": device['device_id']}
     projection = {"_id": 0}
     result = await database.get_last_device_data(query, device_response_data, projection)
+    print(result[0].get('online'))
     previous_status = result[0].get('online')
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -133,7 +134,7 @@ async def main():
         tasks = [run_device_request(device) for device in active_devices]
         print(f"Number of devices running: {len(tasks)}")
         await asyncio.gather(*tasks)
-        await asyncio.sleep(60)
+        await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
