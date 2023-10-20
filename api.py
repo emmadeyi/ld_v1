@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2AuthorizationCodeBearer
+from fastapi.encoders import jsonable_encoder
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
-import time
 import secrets
 from fastapi.responses import JSONResponse
 import json
@@ -188,7 +188,7 @@ async def update_device_tariff(tariff: float, device: str = Depends(get_current_
     update_query = {"tariff": tariff}
     modified_data = await update_device_data(filter_query, update_query)
     if modified_data:
-        return JSONResponse({"previous_data": device,"updated_data": modified_data})
+        return JSONResponse({"device_id": device['device_id'], "previous_tariff": device['tariff'],"updated_tariff": modified_data['tariff']})
     raise HTTPException(status_code=404, detail=f"Device with ID {device} not found")
 
 # Update device data
@@ -210,7 +210,7 @@ async def update_device(tariff: float = None, active: float = None, request_toke
 # Refresh bearer token
 @app.put("/refresh_device_token/{device_id}")
 async def refresh_device_token(device_id: str = Depends(refresh_device_token)):
-    return {"message": "Device Token Refreshed", "token": device_id}
+    return {"message": "Device Token Refreshed", "token": device_id['bearer_token']}
 
 # Get Current Device
 @app.get("/device/")
@@ -357,42 +357,26 @@ async def read_device_day_diff_power_usage(day_diff: int, current_device: str = 
 
 # Get Device Aggregated Stats
 @app.get("/device/aggregated/statistics")
-async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)):    
-    try:
-        with open(device_stats_file, "r") as json_file:
-            try:
-                json_data = json.load(json_file)
-                if 'status_statistics' in json_data:
-                    status_statistics_data = json_data['status_statistics']
-                    return JSONResponse(content=status_statistics_data)
-                else:
-                    # run calculation
-                    bg.add_task(get_statistics, current_device["device_id"])
-                    return JSONResponse({"data": {}, "Error": f""})
-            except json.decoder.JSONDecodeError as e:
-                bg.add_task(get_statistics, current_device["device_id"])
-                return JSONResponse({"data": {}, "Error": f"Stats File is empty. {e}"})
-    except FileNotFoundError:
-            return JSONResponse({"data": {}, "Error": f"Stats File error. {e}"})
+async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
+    stats = await database.get_statistics_record(config['DEVICE_STATS_COLLECTION'], current_device["device_id"])
+    if stats:
+        return JSONResponse({"device_id": stats['device_id'],
+                             "tariff": stats['current_tariff'], 
+                             "status_statistics": stats['status_statistics']
+                             })
+    bg.add_task(get_statistics, current_device["device_id"])
+    return JSONResponse({"data": {}, "Error": f""})
     
 @app.get("/device/aggregated/power_usage")
 async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
-    try:
-        with open(device_stats_file, "r") as json_file:
-            try:
-                json_data = json.load(json_file)
-                if 'energy_statistics' in json_data:
-                    energy_statistics_data = json_data['energy_statistics']
-                    return JSONResponse(content=energy_statistics_data)
-                else:
-                    # run calculation
-                    bg.add_task(get_statistics, current_device["device_id"])
-                    return JSONResponse({"data": {}, "Error": f""})
-            except json.decoder.JSONDecodeError as e:
-                bg.add_task(get_statistics, current_device["device_id"])
-                return JSONResponse({"data": {}, "Error": f"Stats File is empty. {e}"})
-    except FileNotFoundError:
-            return JSONResponse({"data": {}, "Error": f"Stats File error. {e}"})
+    stats = await database.get_statistics_record(config['DEVICE_STATS_COLLECTION'], current_device["device_id"])
+    if stats:
+        return JSONResponse({"device_id": stats['device_id'],
+                             "tariff": stats['current_tariff'], 
+                             "energy_statistics": stats['energy_statistics']
+                             })
+    bg.add_task(get_statistics, current_device["device_id"])
+    return JSONResponse({"data": {}, "Error": f""})
 
 @app.get("/activate_device/{action}")
 async def start_api_call(action: str, background_tasks: BackgroundTasks, device: str = Depends(get_current_device)):    
@@ -428,124 +412,7 @@ async def delete_device(device_id: str):
     else:
         raise HTTPException(status_code=404, detail="Device not found")
 
-def restart_fastapi_server():
-    try:
-        subprocess.run(["uvicorn", "api:app", "--reload"], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error while restarting FastAPI server: {e}")
-
-async def run_device_request(device):
-    call_count = 0
-    previous_status = None    
-    
-    while True:
-        print(f"Sending request for Device: #{device['device_id']}...")
-        api_response, status_code = send_post_request(device)
-        logged_data = await log_device_data(api_response)
-        print(json.dumps(logged_data, indent=2))
-        # check for status change function here
-        if logged_data['online'] != previous_status:
-            print(f"\nStatus change detected for device {device['device_id']}. New Status: {logged_data['online']}")
-            previous_status = logged_data['online']
-            status_data = {
-                "status": logged_data['online'],
-                "device_id": logged_data['device_id'],
-                "start_date": logged_data['timestamp']
-            }
-            print(json.dumps(status_data, indent=2))
-            # send post notification
-            notification_response = await send_status_notification(status_data)
-            # await send_status_notification(status_data)
-            print(notification_response)
-        # Calculate analysis and put in json file for easy extractions
-        print(f"API Response Status Code: {status_code}")
-        await get_statistics(device['device_id'])
-        # call_count += 1
-        # if call_count >= 30:
-        #     await get_statistics(device_id)
-        #     call_count = 0
-        await asyncio.sleep(60)  # Use asyncio.sleep instead of time.sleep
-
-def send_post_request(device):
-    headers = {
-        "Authorization": f"Bearer {device['request_token']}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "thingList": [
-            {
-                "itemType": 1,
-                "id": device['device_id']
-            }
-        ]
-    }
-    try:
-        response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
-        return response.json(), response.status_code
-    except requests.RequestException as e:
-        return {"error": f"Error: {e}"}, 500
-
-async def log_device_data(device_data):
-    try:
-        # Get the current time in GMT+1 timezone
-        gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])  # Adjust to your specific timezone
-        current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
-        
-        timestamp = current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')
-        device_info = device_data.get("data", {}).get("thingList", [{}])[0].get("itemData", {})
-        device_id = device_info.get("deviceid", "N/A")
-        online = device_info.get("online", "N/A")
-        power = device_info.get("params", {}).get("power", "N/A")
-        voltage = device_info.get("params", {}).get("voltage", "N/A")
-        current = device_info.get("params", {}).get("current", "N/A")
-        # name = device_info.get("name", "N/A")
-        data_dict = {
-            "timestamp": timestamp,
-            "device_id": device_id,
-            "online": online,
-            "power": power,
-            "voltage": voltage,
-            "current": current,
-            # "Name": name
-        }
-        
-        result = await database.insert_device_response(data_dict, device_response_data)
-        print(f"#{device_id} Device Data Logged. {result}")
-        return result
-    except Exception as e:
-        print(f"Log Device Data: Exception - {e}")
-
 async def get_statistics(device_id):    
     analyzer = DeviceStatusAnalyzer(device_id)
-    print(device_id)
-    stats = await analyzer.get_statistics()
-    print(stats) 
-    result = await load_device_info(stats, "device_stats_file.json")
+    result = await analyzer.get_statistics()
     return result
-
-async def load_device_info(stats, stats_file):
-    try:
-        with open(stats_file, "w", encoding='utf-8') as stats_file:
-            json.dump(stats, stats_file, ensure_ascii=False, indent=2)
-    except FileNotFoundError:
-        return None
-    
-async def send_status_notification(data, notify_token=config['NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN'], api_endpoint=config['NOTIFY_STATUS_CHANGE_API_ENDPOINT']):
-        headers = {
-            "Authorization": f"Bearer {notify_token}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-                    "start_time": data['start_date'],
-                    "device_id": data['device_id'],
-                    "status": data['status']
-                }
-        try:
-            response = requests.post(api_endpoint, headers=headers, json=payload)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
-
-            return response.json(), response.status_code
-        except requests.RequestException as e:
-            return {"error": f"Error: {e}"}, 500

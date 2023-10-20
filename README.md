@@ -36,34 +36,23 @@ sudo systemctl status mongod
 sudo systemctl enable mongod
 
 
-####### create venv
+####### create venv to use venv
 sudo apt install python3.10-venv
 python3 -m venv venv
 source venv/bin/activate
 
-########## Run app
+Run app
 $ pip3 install -r requirements.txt
+$ pip install --force-reinstall pyopenssl
 $ python3 DatabaseClass.py - initialize DBase
-$ nohup python3 -m uvicorn api:app
-$ nohup python3 run_request.py
+
+$ nohup python3 -m uvicorn api:app > api.log 2>&1 &
+$ nohup python3 run_request.py > device_request.log 2>&1 &
 
 ##########Securing Server
 
 
-test data
-
-"updated_data": {
-        "_id": "652fab4081966ac61b773bc2",
-        "device_id": "1001e2b96d",
-        "tariff": 68.2,
-        "bearer_token": "yDq7R9WGX_VbD2uoptptUwtAlOU97IyglwdYH81T6mLnN9CxRbq-nOzOnwt_HGYOCQmOn9iLR9RM8aSvKpZqKQ",
-        "request_token": "1c30586f63074fb831f95d8350bd24e4a1749dab",
-        "notify_token": "d7dcde50cf4771acfbf36e28a4c58e96",
-        "refresh_token": "e20e2e70aac58647ac53511e24b77b3b2637a63a",
-        "active": false
-    }
-
-################ Kill background process
+# Kill background process
     ps aux | grep uvicorn or python
     kill -9 process_id
 

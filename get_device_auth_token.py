@@ -45,18 +45,18 @@ def get_auth_token(signature, appid, nonce, api_endpoint,data):
         return {"error": f"Error: {e}"}, 500
     
 
-# if __name__ == "__main__":
-#     appid = "ZoyNpbjbUyPRa2Uy4I2iEa362mKzOf3N"
-#     nonce = generate_random_string(8)
-#     api_endpoint = "https://lytdey.proxy.beeceptor.com/v2/user/oauth/token"
-#     code = "bb11aaec-9ed6-43e3-b757-8705e985212b"
-#     data = {
-#             "code":f"{code}",
-#             "redirectUrl":"https://lytdey.com/redirect_url",
-#             "grantType":"authorization_code"
-#         }
-#     secret = 'k6qjuyjeHHsIpluEmvsPVAvzoKIzQY96'
-#     signature = get_signature(secret, data)
-#     print(signature)
+if __name__ == "__main__":
+    appid = "ZoyNpbjbUyPRa2Uy4I2iEa362mKzOf3N"
+    nonce = generate_random_string(8)
+    api_endpoint = "https://lytdey.proxy.beeceptor.com/v2/user/oauth/token"
+    code = "bb11aaec-9ed6-43e3-b757-8705e985212b"
+    data = {
+            "code":f"{code}",
+            "redirectUrl":"https://lytdey.com/redirect_url",
+            "grantType":"authorization_code"
+        }
+    secret = 'k6qjuyjeHHsIpluEmvsPVAvzoKIzQY96'
+    signature = get_signature(secret, data)
+    print(signature)
 
-#     print(get_auth_token(signature, appid, nonce, api_endpoint, data))
+    print(get_auth_token(signature, appid, nonce, api_endpoint, data))

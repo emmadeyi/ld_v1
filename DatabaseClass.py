@@ -46,6 +46,37 @@ class MongoDBClass:
         # Handle the case where insertion failed
         return None  # You might want to raise an exception or handle this differently
 
+    async def store_statistics(self, stats, collection_name):
+        collection = self.db[collection_name]
+
+        # Define the filter criteria (in this case, we use the device_id)
+        filter_criteria = {"device_id": stats["device_id"]}
+
+        print(f"storing stats for #{stats['device_id']}")
+        # Replace the existing record or insert a new one if it doesn't exist
+        result = await collection.replace_one(filter_criteria, stats, upsert=True)
+
+        # Optionally, you can check the result
+        if result.modified_count > 0:
+            print(f"Updated existing stats record for device {stats['device_id']}")
+        else:
+            print(f"Inserted a new stats record for device {stats['device_id']}")
+            
+    async def get_statistics_record(self, collection_name, device_id):
+        collection = self.db[collection_name]
+
+        # Define the filter criteria (in this case, we use the device_id)
+        filter_criteria = {"device_id": device_id}
+
+        # Find one device record based on the filter
+        device_record = await collection.find_one(filter_criteria, {"_id": 0})
+        # Convert ObjectId to string for JSON serialization
+        if '_id' in device_record:
+            device_record['_id'] = str(device_record['_id'])
+            
+        return device_record
+
+
     async def get_single_device(self, device_id, collection_name):
         devices_collection = self.db[collection_name]
         device = await devices_collection.find_one({'device_id': device_id})

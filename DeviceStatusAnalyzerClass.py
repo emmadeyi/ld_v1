@@ -402,29 +402,25 @@ class DeviceStatusAnalyzer:
         start_of_month = await self.get_day_difference_from_start_of_month()
         start_of_year = await self.get_day_difference_from_start_of_year()
 
-        print("Loading Statistics.............")
-
-        result = {
+        stats = {
+                    "device_id": self.device_id,
+                    "current_tariff": await self.get_device_tariff(self.device_id),
                     "energy_statistics": 
                     {
-                        "device_id": self.device_id,
-                        "current_tariff": await self.get_device_tariff(self.device_id),
-                            "day": await self.get_energy_statistics_of_day_range(),
-                            "week": await self.get_energy_statistics_of_day_range(start_of_week),
-                            "month": await self.get_energy_statistics_of_day_range(start_of_month),
-                            "year": await self.get_energy_statistics_of_day_range(start_of_year)
+                        "day": await self.get_energy_statistics_of_day_range(),
+                        "week": await self.get_energy_statistics_of_day_range(start_of_week),
+                        "month": await self.get_energy_statistics_of_day_range(start_of_month),
+                        "year": await self.get_energy_statistics_of_day_range(start_of_year)
                     },
                     "status_statistics": 
                     {
-                        "device_id": self.device_id,
-                        "current_tariff": await self.get_device_tariff(self.device_id),
                         "day": await self.get_statistics_of_day_range(),
                         "week": await self.get_statistics_of_day_range(start_of_week),
                         "month": await self.get_statistics_of_day_range(start_of_month),
                         "year": await self.get_statistics_of_day_range(start_of_year)
                     }                
                 }
-        
+        result = await database.store_statistics(stats, config['DEVICE_STATS_COLLECTION'])
         return result
 
 # Define a custom encoder to handle sets

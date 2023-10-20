@@ -26,11 +26,12 @@ async def get_devices():
     return devices
 
 async def run_device_request(device):
-    previous_status = None
-    
+    query = {"device_id": device['device_id']}
+    projection = {"_id": 0}
+    result = await database.get_last_device_data(query, device_response_data, projection)
+    previous_status = result[0].get('online')
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Sending request for Device: #{device['device_id']}...")
     api_response, status_code = send_post_request(device)
     logged_data = await log_device_data(api_response, device['device_id'])
 
@@ -45,7 +46,8 @@ async def run_device_request(device):
             }
             await send_status_notification(status_data)
         await get_statistics(device['device_id'])
-    # print(f"API Response Status Code: {status_code}")
+    else: 
+        print(f"API Response Status Code: {status_code}")
     print(f".............End Processing #{device['device_id']}...........\n")
 
 def send_post_request(device):
@@ -69,7 +71,6 @@ def send_post_request(device):
         return {"error": f"Error: {e}"}, 500
 
 async def log_device_data(device_data, device_id=None):
-    # print(f"Storing request responses for Device: #{device_id}...")
     try:        
         current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
         timestamp = current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')
@@ -89,20 +90,17 @@ async def log_device_data(device_data, device_id=None):
         }
 
         result = await database.insert_device_response(data_dict, device_response_data)
-        print(f"#{device_id} Data Logged.")
+        print(f"#{device_id} Data Logged.\n{result}")
         return result
     except Exception as e:
         print(f"Log Device Data: Exception - {e}")
 
 async def get_statistics(device_id):
-    # print(f'Processing statistics for Device: #{device_id}')
     analyzer = DeviceStatusAnalyzer(device_id)
     stats = await analyzer.get_statistics()
-    result = await load_device_info(stats, "device_stats_file.json", device_id)
-    return result
+    return stats
 
 async def load_device_info(stats, stats_file, device_id=None):
-    # print(f"Updating statistics file for: #{device_id}")
     try:
         with open(stats_file, "w", encoding='utf-8') as stats_file:
             json.dump(stats, stats_file, ensure_ascii=False, indent=2)
