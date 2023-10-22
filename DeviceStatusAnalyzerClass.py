@@ -118,10 +118,12 @@ class DeviceStatusAnalyzer:
             return {
                 "status": True if most_recent_status == True else False if most_recent_status == False else 'Connection lost',
                 "duration": await self.format_duration_to_hours_minutes_sec(most_recent_duration_hours, most_recent_duration_minutes, most_recent_duration_seconds),
-                "start_date": last_start_date,
-                "start_time": last_start_time,
-                "last_updated_date": last_most_recent_date,
-                "last_updated_time": last_most_recent_time
+                "start_date": most_recent_start_time,
+                # "start_date": last_start_date,
+                # "start_time": last_start_time,
+                "last_updated_date": most_recent_most_recent_time,
+                # "last_updated_date": last_most_recent_date,
+                # "last_updated_time": last_most_recent_time
             }
 
     async def analyze_status(self):

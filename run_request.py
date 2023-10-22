@@ -51,8 +51,6 @@ async def run_device_request(device):
     print(f".............End Processing #{device['device_id']}...........\n")
 
 def send_post_request(device):
-    print(config['API_ENDPOINT'])
-    print(device['request_token'], device['device_id'])
     headers = {
         "Authorization": f"Bearer {device['request_token']}",
         "Content-Type": "application/json"
