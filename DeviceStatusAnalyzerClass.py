@@ -198,7 +198,7 @@ class DeviceStatusAnalyzer:
         daytime_records = []
         for transition in duration_transitions:
             if transition['online'] == status:
-                daytime_records = [ record for record in duration_transitions if 0 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 18 ]
+                daytime_records = [ record for record in duration_transitions if 0 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 17 ]
     
         return daytime_records
 
@@ -206,8 +206,7 @@ class DeviceStatusAnalyzer:
         nighttime_records = []
         for transition in duration_transitions:
             if transition['online'] == status:
-                nighttime_records = [ record for record in duration_transitions if 18 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 24 ]
-                # nighttime_records = [ record for record in duration_transitions if 18 <= int(record['timestamp'].split(' ')[1].split(':')[0]) and int(record['timestamp'].split(' ')[1].split(':')[0]) < 24]
+                nighttime_records = [ record for record in duration_transitions if 17 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 24 ]
 
         return nighttime_records
     

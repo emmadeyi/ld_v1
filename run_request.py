@@ -137,7 +137,7 @@ async def main():
         tasks = [run_device_request(device) for device in active_devices]
         print(f"Number of devices running: {len(tasks)}")
         await asyncio.gather(*tasks)
-        await asyncio.sleep(5)
+        await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(main())
