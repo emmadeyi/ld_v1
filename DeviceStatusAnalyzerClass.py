@@ -1,6 +1,7 @@
 import time
 import datetime
 import json
+import asyncio
 from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
 
@@ -134,7 +135,7 @@ class DeviceStatusAnalyzer:
                 most_recent_date, most_recent_time = await self.separate_date_and_time(most_recent_time)
 
                 all_status_analysis.append({
-                    "status": True if status == '1' else False if status == '0' else 'Connection lost',
+                    "status": True if status == True else False if status == False else 'Connection lost',
                     "duration": await self.format_duration_to_hours_minutes_sec(duration_hours, duration_minutes, duration_seconds),
                     "start_date": start_date,
                     "start_time": start_time,
@@ -198,14 +199,15 @@ class DeviceStatusAnalyzer:
         for transition in duration_transitions:
             if transition['online'] == status:
                 daytime_records = [ record for record in duration_transitions if 0 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 18 ]
-
+    
         return daytime_records
 
     async def calculate_nighttime_hours(self, duration_transitions, status):
         nighttime_records = []
         for transition in duration_transitions:
             if transition['online'] == status:
-                nighttime_records = [ record for record in duration_transitions if 17 <= int(record['timestamp'].split(' ')[1].split(':')[0]) or int(record['timestamp'].split(' ')[1].split(':')[0]) < 24]
+                nighttime_records = [ record for record in duration_transitions if 18 <= int(record['timestamp'].split(' ')[1].split(':')[0]) < 24 ]
+                # nighttime_records = [ record for record in duration_transitions if 18 <= int(record['timestamp'].split(' ')[1].split(':')[0]) and int(record['timestamp'].split(' ')[1].split(':')[0]) < 24]
 
         return nighttime_records
     
@@ -226,7 +228,7 @@ class DeviceStatusAnalyzer:
 
             daytime_durations = await self.calculate_status_durations(daytime_transitions)
             nighttime_durations = await self.calculate_status_durations(nighttime_transitions)
-
+            
             for duration in daytime_durations:
                 day_durations.append(duration) 
             for duration in nighttime_durations:
@@ -258,25 +260,26 @@ class DeviceStatusAnalyzer:
     async def calculate_statistics(self, start_time=None, end_time=None):
         # Fetch transitions within the specified time range
         transitions = await self.get_status_transitions(self.device_id, start_time, end_time)
-        # Calculate status durations for the specified time range
+        # # Calculate status durations for the specified time range
         status_durations = await self.calculate_status_durations(transitions)
-        # Get day and night durations
+        # # Get day and night durations
         durations = await self.get_day_and_night_durations(status_durations, transitions)
         day_durations = durations[0]
         night_durations = durations[1]
+
         
-        # get total daytime statistics in seconds
+        # # get total daytime statistics in seconds
         daytime_statistics = await self.get_statistics_in_seconds(day_durations)
                 
-        # get total nighttime statistics in seconds  
+        # # get total nighttime statistics in seconds  
         nighttime_statistics = await self.get_statistics_in_seconds(night_durations)
         
         
-        # get total daytime and nighttime statistics in seconds 
+        # # get total daytime and nighttime statistics in seconds 
         total_statistics = await self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
         result = {
-            'start_time': transitions[0][1] if start_time == None else start_time,
-            'end_time': transitions[-1][1] if end_time == None else end_time,
+            'start_time': transitions[0]['timestamp'] if start_time == None else start_time,
+            'end_time': transitions[-1]['timestamp'] if end_time == None else end_time,
             "daytime_online": daytime_statistics[0], 
             "daytime_offline": daytime_statistics[1], 
             "daytime_connection_lost": daytime_statistics[2],
@@ -416,6 +419,11 @@ class SetEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return list(obj)
         return super().default(obj)
+    
 
+# if __name__ == "__main__":
+#     analyzer = DeviceStatusAnalyzer('1001e2b96d')
+#     results = asyncio.run(analyzer.calculate_statistics())
+#     print(results)
     
     
