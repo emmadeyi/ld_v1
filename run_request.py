@@ -28,8 +28,11 @@ async def run_device_request(device):
     query = {"device_id": device['device_id']}
     projection = {"_id": 0}
     result = await database.get_last_device_data(query, device_response_data, projection)
-    print(result[0].get('online'))
-    previous_status = result[0].get('online')
+    if result:
+        previous_status = result[0].get('online')
+    else:
+        previous_status = None
+
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
     api_response, status_code = send_post_request(device)
@@ -66,7 +69,6 @@ def send_post_request(device):
     try:
         response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
         response.raise_for_status()  # Raise an HTTPError for bad responses
-        print(response.status_code)
         return response.json(), response.status_code
     except requests.RequestException as e:
         return {"error": f"Error: {e}"}, 500
@@ -123,7 +125,7 @@ async def send_status_notification(data, notify_token=config['NOTIFY_STATUS_CHAN
     try:
         response = requests.post(api_endpoint, headers=headers, json=payload)
         response.raise_for_status()  # Raise an HTTPError for bad responses
-        print(response.status_code, response.json())
+
         return response.json(), response.status_code
     except requests.RequestException as e:
         return {"error": f"Error: {e}"}, 500
@@ -133,7 +135,7 @@ async def main():
         devices = await get_devices()
         active_devices = [device for device in devices if device.get("active", False)]
         tasks = [run_device_request(device) for device in active_devices]
-        print(f"Number of devices running: {len(tasks)}")
+        print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
         await asyncio.gather(*tasks)
         await asyncio.sleep(60)
 
