@@ -37,7 +37,6 @@ async def run_device_request(device):
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
     api_response, status_code = await send_post_request(device)
-    print(api_response, status_code)
     logged_data = await log_device_data(api_response, device['device_id'])
 
     if logged_data and logged_data.get('online') is not None:
