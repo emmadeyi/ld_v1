@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
 import datetime
 import pytz
+import httpx
 
 config = dotenv_values(".env")
 db_client = config['DATABASE_URL']
@@ -35,7 +36,8 @@ async def run_device_request(device):
 
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
-    api_response, status_code = send_post_request(device)
+    api_response, status_code = await send_post_request(device)
+    print(api_response, status_code)
     logged_data = await log_device_data(api_response, device['device_id'])
 
     if logged_data and logged_data.get('online') is not None:
@@ -53,7 +55,27 @@ async def run_device_request(device):
         print(f"API Response Status Code: {status_code}")
     print(f".............End Processing #{device['device_id']}...........\n")
 
-def send_post_request(device):
+# def send_post_request(device):
+#     headers = {
+#         "Authorization": f"Bearer {device['request_token']}",
+#         "Content-Type": "application/json"
+#     }
+#     payload = {
+#         "thingList": [
+#             {
+#                 "itemType": 1,
+#                 "id": device['device_id']
+#             }
+#         ]
+#     }
+#     try:
+#         response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
+#         response.raise_for_status()  # Raise an HTTPError for bad responses
+#         return response.json(), response.status_code
+#     except requests.RequestException as e:
+#         return {"error": f"Error: {e}"}, 500
+    
+async def send_post_request(device):
     headers = {
         "Authorization": f"Bearer {device['request_token']}",
         "Content-Type": "application/json"
@@ -66,12 +88,14 @@ def send_post_request(device):
             }
         ]
     }
-    try:
-        response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
-        return response.json(), response.status_code
-    except requests.RequestException as e:
-        return {"error": f"Error: {e}"}, 500
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(config['API_ENDPOINT'], headers=headers, json=payload)
+            response.raise_for_status()  # Raise an HTTPError for bad responses
+            return response.json(), response.status_code
+        except httpx.RequestError as e:
+            return {"error": f"Error: {e}"}, 500
 
 async def log_device_data(device_data, device_id=None):
     try:        

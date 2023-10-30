@@ -4,6 +4,7 @@ import json
 import asyncio
 from dotenv import dotenv_values
 from DatabaseClass import MongoDBClass
+from collections import defaultdict
 
 config = dotenv_values(".env") 
 db_client = config['DATABASE_URL']
@@ -106,8 +107,8 @@ class DeviceStatusAnalyzer:
     async def get_current_status(self, status_durations):
         try:
             most_recent_status, most_recent_start_time, most_recent_most_recent_time, most_recent_duration_hours, most_recent_duration_minutes, most_recent_duration_seconds =  status_durations[-1]
-            last_start_date, last_start_time = await self.separate_date_and_time(most_recent_start_time)
-            last_most_recent_date, last_most_recent_time = await self.separate_date_and_time(most_recent_most_recent_time)
+            # last_start_date, last_start_time = await self.separate_date_and_time(most_recent_start_time)
+            # last_most_recent_date, last_most_recent_time = await self.separate_date_and_time(most_recent_most_recent_time)
 
         except Exception as e:
             # Handle any other unexpected exceptions
@@ -153,7 +154,6 @@ class DeviceStatusAnalyzer:
         status_transitions = await self.get_status_transitions(self.device_id)
         if status_transitions:
             status_durations = await self.calculate_status_durations(status_transitions) 
-            print(status_durations)
             last_updated_status_statistics = await self.get_current_status(status_durations)
         
             return last_updated_status_statistics
@@ -239,9 +239,9 @@ class DeviceStatusAnalyzer:
     
     async def get_day_and_night_statistics_in_seconds(self, daytime_statistics, nighttime_statistics):
         total_online_duration = daytime_statistics[0] + nighttime_statistics[0]
-        total_offline_duration = nighttime_statistics[1] + nighttime_statistics[1]
-        total_disconnected_duration = nighttime_statistics[2] + nighttime_statistics[2]
-        
+        total_offline_duration = daytime_statistics[1] + nighttime_statistics[1]
+        total_disconnected_duration = daytime_statistics[2] + nighttime_statistics[2]
+
         return total_online_duration, total_offline_duration, total_disconnected_duration
 
     async def get_statistics_in_seconds(self, durations):
@@ -274,10 +274,9 @@ class DeviceStatusAnalyzer:
                 
         # # get total nighttime statistics in seconds  
         nighttime_statistics = await self.get_statistics_in_seconds(night_durations)
-        
-        
         # # get total daytime and nighttime statistics in seconds 
         total_statistics = await self.get_day_and_night_statistics_in_seconds(daytime_statistics, nighttime_statistics)
+
         result = {
             'start_time': transitions[0]['timestamp'] if start_time == None else start_time,
             'end_time': transitions[-1]['timestamp'] if end_time == None else end_time,
@@ -289,14 +288,24 @@ class DeviceStatusAnalyzer:
             "nighttime_connection_lost": nighttime_statistics[2],
             "total_online": total_statistics[0], 
             "total_offline": total_statistics[1],
-            "total_connection_lost": total_statistics[2]
+            "total_connection_lost": total_statistics[2],
+            # calculated
+            "formatted_daytime_online": await self.format_duration(daytime_statistics[0]), 
+            "formatted_daytime_offline": await self.format_duration(daytime_statistics[1]), 
+            "formatted_daytime_connection_lost": await self.format_duration(daytime_statistics[2]),
+            "formatted_nighttime_online": await self.format_duration(nighttime_statistics[0]), 
+            "formatted_nighttime_offline": await self.format_duration(nighttime_statistics[1]), 
+            "formatted_nighttime_connection_lost": await self.format_duration(nighttime_statistics[2]),
+            "formatted_total_online":await self.format_duration(total_statistics[0]), 
+            "formatted_total_offline":await self.format_duration(total_statistics[1]), 
+            "formatted_total_connection_lost":await self.format_duration(total_statistics[2])
         }
 
         return result
     
     async def calculate_energy_statistics(self, start_time=None, end_time=None):
         # Fetch transitions within the specified time range
-        transitions = await self.get_status_transitions(self.device_id, start_time, end_time)        
+        transitions = await self.get_status_transitions(self.device_id, start_time, end_time) 
         tariff = await self.get_device_tariff(self.device_id)
         total_online_energy = 0
         total_offline_energy = 0
@@ -314,13 +323,20 @@ class DeviceStatusAnalyzer:
             else:
                 pass
         kwh = round(await self.convert_energy_to_KWh(total_online_energy), 7)
-
+        min_power, max_power, average_power = await self.calculate_power_metrics(transitions, start_time, end_time)
+        days_above_average = await self.days_above_average(transitions, start_time, end_time)
         result = {
                     'start_time': transitions[0][1] if start_time == None else start_time,
                     'end_time': transitions[-1][1] if end_time == None else end_time,
                     'power_usage':{
                         "kwh": kwh,
                         "cost": round(kwh * float(tariff), 2),
+                    },
+                    'power_metrics':{
+                        "min_power": min_power,
+                        "max_power": max_power,
+                        "average_power": average_power,
+                        "days_above_average": days_above_average,
                     }
                 }
         return result
@@ -412,8 +428,58 @@ class DeviceStatusAnalyzer:
                     }                
                 }
         result = await database.store_statistics(stats, config['DEVICE_STATS_COLLECTION'])
-        return result
+        return result, stats['energy_statistics']['month']
+    
+    # Function to convert the timestamp string to a datetime object
+    def parse_timestamp(self, timestamp):
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
+    # Function to calculate the minimum, peak, and average power
+    async def calculate_power_metrics(self, data, start_time, end_time):
+
+        power_values = [
+            float(entry['power']) for entry in data if self.parse_timestamp(start_time) <= self.parse_timestamp(entry['timestamp']) <= self.parse_timestamp(end_time) and entry['online'] == True
+        ]
+
+        if not power_values:
+            return None, None, None
+
+        min_power = min(power_values)
+        peak_power = max(power_values)
+        avg_power = sum(power_values) / len(power_values)
+
+        return round(min_power, 2), round(peak_power, 2), round(avg_power, 2)
+    
+    async def days_above_average(self, data, start_date, end_date):
+        start_datetime = self.parse_timestamp(start_date)
+        end_datetime = self.parse_timestamp(end_date)
+        total_days = (end_datetime - start_datetime).days + 1  # Include both start and end dates
+
+        power_values = []
+
+        for entry in data:
+            entry_date = self.parse_timestamp(entry['timestamp']).date()
+            if start_datetime.date() <= entry_date <= end_datetime.date() and entry['online'] == True:
+                power_values.append(float(entry['power']))
+
+        if not power_values:
+            return []
+
+        avg_power = sum(power_values) / len(power_values)
+
+        above_average_days = []
+
+        for day in range(total_days):
+            current_date = start_datetime + datetime.timedelta(days=day)
+            daily_power = [float(entry['power']) for entry in data if self.parse_timestamp(entry['timestamp']).date() == current_date.date()]
+            
+            if daily_power:
+                daily_avg = sum(daily_power) / len(daily_power)
+                if daily_avg > avg_power:
+                    above_average_days.append(current_date.strftime("%Y-%m-%d"))
+
+        return above_average_days
+    
 # Define a custom encoder to handle sets
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -422,9 +488,9 @@ class SetEncoder(json.JSONEncoder):
         return super().default(obj)
     
 
-# if __name__ == "__main__":
-#     analyzer = DeviceStatusAnalyzer('1001e2b96d')
-#     results = asyncio.run(analyzer.calculate_statistics())
-#     print(results)
+if __name__ == "__main__":
+    analyzer = DeviceStatusAnalyzer('1001e2b96d')
+    results = asyncio.run(analyzer.get_statistics())
+    print(results)
     
     
