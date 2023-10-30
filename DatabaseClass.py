@@ -219,8 +219,8 @@ async def init_database():
     # collection_name = config['DEVICE_RESPONSE_COLLECTION']
     # await db.initialize_database(collection_name)
     # init DEVICE_STATS_COLLECTION
-    # collection_name = config['DEVICE_STATS_COLLECTION']
-    # await db.initialize_database(collection_name)
+    collection_name = config['DEVICE_STATS_COLLECTION']
+    await db.initialize_database(collection_name)
 
     # Close the database connection
     db.close_connection()
