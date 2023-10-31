@@ -426,7 +426,7 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
 @app.get("/activate_device/{action}")
 async def start_api_call(action: str, background_tasks: BackgroundTasks, device: str = Depends(get_current_device)):    
     if action == '1':        
-        filter_query = {'device_id': device["device_id"]} 
+        filter_query = {'device_id': device.device_id} 
         update_query = {
             "active": True,
             }
@@ -435,7 +435,7 @@ async def start_api_call(action: str, background_tasks: BackgroundTasks, device:
             return JSONResponse({"previous_data": device,"updated_data": modified_data})
         raise HTTPException(status_code=404, detail=f"Device with ID {device} not found")
     elif action == '0':        
-        filter_query = {'device_id': device["device_id"]} 
+        filter_query = {'device_id': device.device_id} 
         update_query = {
             "active": False,
             }
@@ -446,16 +446,16 @@ async def start_api_call(action: str, background_tasks: BackgroundTasks, device:
     else:
         return {"message": "Invalid input"}
     
-# @app.delete("/devices/{device_id}")
-# async def delete_device(device_id: str):
-#     device = await get_device(device_id)
-#     if device:
-#         if await remove_device(device['device_id']):
-#             return {"message": f"Device {device_id} deleted successfully"}
-#         else:
-#             raise HTTPException({"message": f"Delete Error"})
-#     else:
-#         raise HTTPException(status_code=404, detail="Device not found")
+@app.delete("/devices/{device_id}")
+async def delete_device(device_id: str):
+    device = await get_device(device_id)
+    if device:
+        if await remove_device(device['device_id']):
+            return {"message": f"Device {device_id} deleted successfully"}
+        else:
+            raise HTTPException({"message": f"Delete Error"})
+    else:
+        raise HTTPException(status_code=404, detail="Device not found")
 
 async def get_statistics(device_id):    
     analyzer = DeviceStatusAnalyzer(device_id)

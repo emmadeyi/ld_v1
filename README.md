@@ -44,6 +44,7 @@ source venv/bin/activate
 Run app
 $ pip3 install -r requirements.txt
 $ pip install --force-reinstall pyopenssl
+$ sudo apt-get install libpq-dev
 $ python3 DatabaseClass.py - initialize DBase
 
 $ nohup python3 -m uvicorn api:app > api.log 2>&1 &

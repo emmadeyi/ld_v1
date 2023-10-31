@@ -70,7 +70,7 @@ class MongoDBClass:
 
         # Find one device record based on the filter
         device_record = await collection.find_one(filter_criteria, {"_id": 0})
-        if device_id:
+        if device_record:
             # Convert ObjectId to string for JSON serialization
             if '_id' in device_record:
                 device_record['_id'] = str(device_record['_id'])
