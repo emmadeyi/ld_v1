@@ -154,13 +154,19 @@ async def send_status_notification(data, notify_token=config['NOTIFY_STATUS_CHAN
         return {"error": f"Error: {e}"}, 500
 
 async def main():
-    while True:
-        devices = await get_devices()
-        active_devices = [device for device in devices if device.get("active", False)]
-        tasks = [run_device_request(device) for device in active_devices]
-        print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
-        await asyncio.gather(*tasks)
-        await asyncio.sleep(60)
+    devices = await get_devices()
+    active_devices = [device for device in devices if device.get("active", False)]
+    tasks = [run_device_request(device) for device in active_devices]
+    print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
+    await asyncio.gather(*tasks)
+# async def main():
+#     while True:
+#         devices = await get_devices()
+#         active_devices = [device for device in devices if device.get("active", False)]
+#         tasks = [run_device_request(device) for device in active_devices]
+#         print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
+#         await asyncio.gather(*tasks)
+#         await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(main())
