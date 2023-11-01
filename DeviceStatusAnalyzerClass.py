@@ -449,37 +449,132 @@ class DeviceStatusAnalyzer:
         avg_power = sum(power_values) / len(power_values)
 
         return round(min_power, 2), round(peak_power, 2), round(avg_power, 2)
-    
+
+    # async def days_above_average(self, data, start_date, end_date):
+    #     start_datetime = self.parse_timestamp(start_date)
+    #     end_datetime = self.parse_timestamp(end_date)
+    #     total_days = (end_datetime - start_datetime).days + 1  # Include both start and end dates
+
+    #     power_values = []
+    #     date_entries = defaultdict(list)
+
+    #     for entry in data:
+    #         entry_timestamp = self.parse_timestamp(entry['timestamp'])
+    #         entry_date = entry_timestamp.date()
+
+    #         if start_datetime.date() <= entry_date <= end_datetime.date() and entry['online']:
+    #             power = round(float(entry['power']), 2)
+    #             power_values.append(power)
+    #             date_entries[entry_date].append((entry_timestamp, power))
+
+    #     if not power_values:
+    #         return {}
+
+    #     avg_power = round(sum(power_values) / len(power_values), 2)
+    #     above_average_hours = defaultdict(list)
+
+    #     for date in date_entries:
+    #         for hour in range(24):
+    #             hour_entries = [entry for entry in date_entries[date] if entry[0].hour == hour and entry[1] > avg_power]
+                
+    #             if hour_entries:
+    #                 hour_entries.sort(key=lambda x: x[0])
+    #                 total_duration = 0
+    #                 start_time = None
+    #                 power_values = []
+
+    #                 for i in range(len(hour_entries)):
+    #                     timestamp, power = hour_entries[i]
+    #                     if start_time is None:
+    #                         start_time = timestamp
+    #                     else:
+    #                         time_difference = timestamp - start_time
+    #                         duration_seconds = time_difference.total_seconds()
+    #                         total_duration += duration_seconds
+    #                         start_time = timestamp
+    #                     power_values.append(power)
+
+    #                 above_average_hours[date.strftime("%Y-%m-%d")].append({
+    #                     "hour": hour,
+    #                     "duration_seconds": total_duration,
+    #                     "power_values": round(sum(power_values) / len(power_values), 2),
+    #                     "avg_power": avg_power,
+    #                     "start_timestamp": hour_entries[0][0].strftime("%Y-%m-%d %H:%M:%S"),
+    #                     "end_timestamp": hour_entries[-1][0].strftime("%Y-%m-%d %H:%M:%S"),
+    #                     "entries": [entry[0].strftime("%Y-%m-%d %H:%M:%S") for entry in hour_entries]
+    #                 })
+
+    #     return above_average_hours
     async def days_above_average(self, data, start_date, end_date):
         start_datetime = self.parse_timestamp(start_date)
         end_datetime = self.parse_timestamp(end_date)
         total_days = (end_datetime - start_datetime).days + 1  # Include both start and end dates
 
-        power_values = []
-
-        for entry in data:
-            entry_date = self.parse_timestamp(entry['timestamp']).date()
-            if start_datetime.date() <= entry_date <= end_datetime.date() and entry['online'] == True:
-                power_values.append(float(entry['power']))
+        power_values, date_entries = await self.extract_power_and_date_entries(data, start_datetime, end_datetime)
 
         if not power_values:
-            return []
+            return {}
 
-        avg_power = sum(power_values) / len(power_values)
+        avg_power = round(sum(power_values) / len(power_values), 2)
+        above_average_hours = await self.calculate_above_average_hours(date_entries, avg_power)
 
-        above_average_days = []
+        return above_average_hours
 
-        for day in range(total_days):
-            current_date = start_datetime + datetime.timedelta(days=day)
-            daily_power = [float(entry['power']) for entry in data if self.parse_timestamp(entry['timestamp']).date() == current_date.date()]
-            
-            if daily_power:
-                daily_avg = sum(daily_power) / len(daily_power)
-                if daily_avg > avg_power:
-                    above_average_days.append(current_date.strftime("%Y-%m-%d"))
+    async def extract_power_and_date_entries(self, data, start_datetime, end_datetime):
+        power_values = []
+        date_entries = defaultdict(list)
 
-        return above_average_days
-    
+        for entry in data:
+            entry_timestamp = self.parse_timestamp(entry['timestamp'])
+            entry_date = entry_timestamp.date()
+
+            if start_datetime.date() <= entry_date <= end_datetime.date() and entry['online']:
+                power = round(float(entry['power']), 2)
+                power_values.append(power)
+                date_entries[entry_date].append((entry_timestamp, power))
+
+        return power_values, date_entries
+
+    async def calculate_above_average_hours(self, date_entries, avg_power):
+        above_average_hours = defaultdict(list)
+
+        for date in date_entries:
+            for hour in range(24):
+                hour_entries = [entry for entry in date_entries[date] if entry[0].hour == hour and entry[1] > avg_power]
+                
+                if hour_entries:
+                    hour_entries.sort(key=lambda x: x[0])
+                    total_duration, power_values = await self.calculate_duration_and_power(hour_entries)
+
+                    above_average_hours[date.strftime("%Y-%m-%d")].append({
+                        "hour": hour,
+                        "duration_seconds": total_duration,
+                        "power_values": round(sum(power_values) / len(power_values), 2),
+                        "avg_power": avg_power,
+                        "start_timestamp": hour_entries[0][0].strftime("%Y-%m-%d %H:%M:%S"),
+                        "end_timestamp": hour_entries[-1][0].strftime("%Y-%m-%d %H:%M:%S"),
+                        "entries": [entry[0].strftime("%Y-%m-%d %H:%M:%S") for entry in hour_entries]
+                    })
+
+        return above_average_hours
+
+    async def calculate_duration_and_power(self, hour_entries):
+        total_duration = 0
+        start_time = None
+        power_values = []
+
+        for i in range(len(hour_entries)):
+            timestamp, power = hour_entries[i]
+            if start_time is None:
+                start_time = timestamp
+            else:
+                time_difference = timestamp - start_time
+                duration_seconds = time_difference.total_seconds()
+                total_duration += duration_seconds
+                start_time = timestamp
+            power_values.append(power)
+
+        return total_duration, power_values
 # Define a custom encoder to handle sets
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):

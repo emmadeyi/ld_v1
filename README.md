@@ -48,7 +48,7 @@ $ sudo apt-get install libpq-dev
 $ python3 DatabaseClass.py - initialize DBase
 
 $ nohup python3 -m uvicorn api:app > api.log 2>&1 &
-$ nohup python3 run_request.py > device_request.log 2>&1 &
+$ nohup python3 run_request.py > run_request.log 2>&1 &
 
 ##########Securing Server
 
