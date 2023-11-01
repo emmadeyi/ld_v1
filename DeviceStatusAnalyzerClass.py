@@ -2,15 +2,17 @@ import time
 import datetime
 import json
 import asyncio
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from DatabaseClass import MongoDBClass
 from collections import defaultdict
+import os
 
-config = dotenv_values(".env") 
-db_client = config['DATABASE_URL']
-db_name = config['DATABASE_NAME']
-device_response_data = config['DEVICE_RESPONSE_COLLECTION']
-device_info = config['DEVICE_INFO_COLLECTION']
+# Load environment variables from .env file
+load_dotenv()
+db_client = os.environ['DATABASE_URL']
+db_name = os.environ['DATABASE_NAME']
+device_response_data = os.environ['DEVICE_RESPONSE_COLLECTION']
+device_info = os.environ['DEVICE_INFO_COLLECTION']
 
 database = MongoDBClass(db_client, db_name)
 
@@ -427,7 +429,7 @@ class DeviceStatusAnalyzer:
                         "year": await self.get_statistics_of_day_range(start_of_year)
                     }                
                 }
-        result = await database.store_statistics(stats, config['DEVICE_STATS_COLLECTION'])
+        result = await database.store_statistics(stats, os.environ['DEVICE_STATS_COLLECTION'])
         return result, stats['energy_statistics']['month']
     
     # Function to convert the timestamp string to a datetime object

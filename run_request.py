@@ -3,21 +3,23 @@ from fastapi.responses import JSONResponse
 import json
 import requests
 import asyncio
-from dotenv import dotenv_values
+from dotenv import load_dotenv  
 from DatabaseClass import MongoDBClass
 import datetime
 import pytz
 import httpx
+import os
+# Load environment variables from .env file
+load_dotenv()
 
-config = dotenv_values(".env")
-db_client = config['DATABASE_URL']
-db_name = config['DATABASE_NAME']
-device_info = config['DEVICE_INFO_COLLECTION']
-device_response_data = config['DEVICE_RESPONSE_COLLECTION']
-device_stats_data = config['DEVICE_STATS_COLLECTION']
-device_stats_file = config["DEVICE_STATS_FILE"]
-api_endpoint = config["API_ENDPOINT"]
-gmt_plus_1_timezone = pytz.timezone(config['TIMEZONE'])
+db_client = os.environ['DATABASE_URL']
+db_name = os.environ['DATABASE_NAME']
+device_info = os.environ['DEVICE_INFO_COLLECTION']
+device_response_data = os.environ['DEVICE_RESPONSE_COLLECTION']
+device_stats_data = os.environ['DEVICE_STATS_COLLECTION']
+device_stats_file = os.environ["DEVICE_STATS_FILE"]
+api_endpoint = os.environ["API_ENDPOINT"]
+gmt_plus_1_timezone = pytz.timezone(os.environ['TIMEZONE'])
 
 database = MongoDBClass(db_client, db_name)
 
@@ -68,7 +70,7 @@ async def run_device_request(device):
 #         ]
 #     }
 #     try:
-#         response = requests.post(config['API_ENDPOINT'], headers=headers, json=payload)
+#         response = requests.post(os.environ['API_ENDPOINT'], headers=headers, json=payload)
 #         response.raise_for_status()  # Raise an HTTPError for bad responses
 #         return response.json(), response.status_code
 #     except requests.RequestException as e:
@@ -90,7 +92,7 @@ async def send_post_request(device):
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(config['API_ENDPOINT'], headers=headers, json=payload)
+            response = await client.post(os.environ['API_ENDPOINT'], headers=headers, json=payload)
             response.raise_for_status()  # Raise an HTTPError for bad responses
             return response.json(), response.status_code
         except httpx.RequestError as e:
@@ -133,7 +135,7 @@ async def load_device_info(stats, stats_file, device_id=None):
     except FileNotFoundError:
         return None
 
-async def send_status_notification(data, notify_token=config['NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN'], api_endpoint=config['NOTIFY_STATUS_CHANGE_API_ENDPOINT']):
+async def send_status_notification(data, notify_token=os.environ['NOTIFY_STATUS_CHANGE_AUHTORIZATION_TOKEN'], api_endpoint=os.environ['NOTIFY_STATUS_CHANGE_API_ENDPOINT']):
     print(f'Sending Status change notification for {data["device_id"]}')
     headers = {
         "Authorization": f"Bearer {notify_token}",

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from DeviceStatusAnalyzerClass import DeviceStatusAnalyzer
 import secrets
 from fastapi.responses import JSONResponse
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from DatabaseClass import MongoDBClass
 import get_device_auth_token 
 from run_request import send_post_request
@@ -12,23 +12,24 @@ from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer
+import os
 
-config = dotenv_values(".env")   
-
+# Load environment variables from .env file
+load_dotenv()
 app = FastAPI()
-db_client = config['DATABASE_URL']
-db_name = config['DATABASE_NAME']
-device_info = config['DEVICE_INFO_COLLECTION']
-device_response_data = config['DEVICE_RESPONSE_COLLECTION']
-device_stats_data = config['DEVICE_STATS_COLLECTION']
-api_endpoint=config["API_ENDPOINT"]
+db_client = os.environ['DATABASE_URL']
+db_name = os.environ['DATABASE_NAME']
+device_info = os.environ['DEVICE_INFO_COLLECTION']
+device_response_data = os.environ['DEVICE_RESPONSE_COLLECTION']
+device_stats_data = os.environ['DEVICE_STATS_COLLECTION']
+api_endpoint=os.environ["API_ENDPOINT"]
 
 database = MongoDBClass(db_client, db_name)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-# Configure security
-ALGORITHM = config['ALGORITHM']
-SECRET_KEY = config['SECRET_KEY']
-ACCESS_TOKEN_EXPIRE_MINUTES = config['ACCESS_TOKEN_EXPIRE_MINUTES']
+# os.environure security
+ALGORITHM = os.environ['ALGORITHM']
+SECRET_KEY = os.environ['SECRET_KEY']
+ACCESS_TOKEN_EXPIRE_MINUTES = os.environ['ACCESS_TOKEN_EXPIRE_MINUTES']
 
 # Define a security dependency using OAuth2AuthorizationCodeBearer
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
@@ -403,7 +404,7 @@ async def read_device_day_diff_power_usage(day_diff: int, current_device: str = 
 # Get Device Aggregated Stats
 @app.get("/device/aggregated/statistics")
 async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
-    stats = await database.get_statistics_record(config['DEVICE_STATS_COLLECTION'], current_device.device_id)
+    stats = await database.get_statistics_record(os.environ['DEVICE_STATS_COLLECTION'], current_device.device_id)
     bg.add_task(get_statistics, current_device.device_id)
     if stats:
         return JSONResponse({"device_id": stats['device_id'],
@@ -414,7 +415,7 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
     
 @app.get("/device/aggregated/power_usage")
 async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
-    stats = await database.get_statistics_record(config['DEVICE_STATS_COLLECTION'], current_device.device_id)
+    stats = await database.get_statistics_record(os.environ['DEVICE_STATS_COLLECTION'], current_device.device_id)
     bg.add_task(get_statistics, current_device.device_id)
     if stats:
         return JSONResponse({"device_id": stats['device_id'],

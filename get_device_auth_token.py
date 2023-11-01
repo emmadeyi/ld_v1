@@ -5,9 +5,11 @@ import secrets
 import string
 import requests
 import json
-from dotenv import dotenv_values
-
-config = dotenv_values(".env") 
+from dotenv import load_dotenv
+import os
+# Load environment variables from .env file
+load_dotenv()
+ 
 def makeSign(key, message):
     j = hmac.new(key.encode(), message.encode(), digestmod=hashlib.sha256)
     return (base64.b64encode(j.digest())).decode()
@@ -33,8 +35,8 @@ def get_auth_token(signature, appid, nonce, api_endpoint, app_code):
 
     payload = {
             "code": app_code,
-            "redirectUrl": config['REDIRECT_URL'],
-            "grantType": config['GRANT_TYPE']
+            "redirectUrl": os.environ['REDIRECT_URL'],
+            "grantType": os.environ['GRANT_TYPE']
         }
 
     try:

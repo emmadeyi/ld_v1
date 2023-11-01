@@ -1,12 +1,12 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from pymongo import ReturnDocument
 import asyncio
+import os
 
-# load_dotenv()
-config = dotenv_values(".env")
-db_client = config['DATABASE_URL']
-db_name = config['DATABASE_NAME']
+load_dotenv()
+db_client = os.environ['DATABASE_URL']
+db_name = os.environ['DATABASE_NAME']
 
 class MongoDBClass:
     def __init__(self, database_url, database_name):
@@ -213,13 +213,13 @@ class MongoDBClass:
 async def init_database():
     db = MongoDBClass(db_client, db_name)
     # init DEVICE_INFO_COLLECTION
-    # collection_name = config['DEVICE_INFO_COLLECTION']
+    # collection_name = os.environ['DEVICE_INFO_COLLECTION']
     # await db.initialize_database(collection_name)
     # init DEVICE_RESPONSE_COLLECTION
-    # collection_name = config['DEVICE_RESPONSE_COLLECTION']
+    # collection_name = os.environ['DEVICE_RESPONSE_COLLECTION']
     # await db.initialize_database(collection_name)
     # init DEVICE_STATS_COLLECTION
-    collection_name = config['DEVICE_STATS_COLLECTION']
+    collection_name = os.environ['DEVICE_STATS_COLLECTION']
     await db.initialize_database(collection_name)
 
     # Close the database connection
