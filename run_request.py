@@ -9,6 +9,7 @@ import datetime
 import pytz
 import httpx
 import os
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -55,26 +56,6 @@ async def run_device_request(device):
     else: 
         print(f"API Response Status Code: {status_code}")
     print(f".............End Processing #{device['device_id']}...........\n")
-
-# def send_post_request(device):
-#     headers = {
-#         "Authorization": f"Bearer {device['request_token']}",
-#         "Content-Type": "application/json"
-#     }
-#     payload = {
-#         "thingList": [
-#             {
-#                 "itemType": 1,
-#                 "id": device['device_id']
-#             }
-#         ]
-#     }
-#     try:
-#         response = requests.post(os.environ['API_ENDPOINT'], headers=headers, json=payload)
-#         response.raise_for_status()  # Raise an HTTPError for bad responses
-#         return response.json(), response.status_code
-#     except requests.RequestException as e:
-#         return {"error": f"Error: {e}"}, 500
     
 async def send_post_request(device):
     headers = {
@@ -161,14 +142,6 @@ async def main():
     tasks = [run_device_request(device) for device in active_devices]
     print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
     await asyncio.gather(*tasks)
-# async def main():
-#     while True:
-#         devices = await get_devices()
-#         active_devices = [device for device in devices if device.get("active", False)]
-#         tasks = [run_device_request(device) for device in active_devices]
-#         print(f"Number of devices running: {len(tasks)} - {datetime.datetime.now(gmt_plus_1_timezone)}")
-#         await asyncio.gather(*tasks)
-#         await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(main())
