@@ -313,7 +313,7 @@ class DeviceStatusAnalyzer:
         total_offline_energy = 0
         total_disconnected_energy = 0
         for transition in transitions:
-            if transition['online'] == True and transition['power'] > 0:
+            if transition['online'] == True and float(transition['power']) > 0:
                 # calculate total online energy overrall
                 total_online_energy += float(transition['power'])
             elif transition['online'] == False:
@@ -345,7 +345,7 @@ class DeviceStatusAnalyzer:
     
     async def convert_energy_to_KWh(self, energy_value):
         div_value =  os.environ['KWH_UNIT']
-        return (energy_value / 1000) * (1/div_value)
+        return (energy_value / 1000) * (1/int(div_value))
         # return (energy_value / 1000) * (1/60)i
     
     async def format_duration(self, duration_seconds):
