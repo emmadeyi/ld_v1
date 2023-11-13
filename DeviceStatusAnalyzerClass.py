@@ -344,7 +344,9 @@ class DeviceStatusAnalyzer:
         return result
     
     async def convert_energy_to_KWh(self, energy_value):
-        return (energy_value / 1000) * (1/60)
+        div_value =  os.environ['KWH_UNIT']
+        return (energy_value / 1000) * (1/div_value)
+        # return (energy_value / 1000) * (1/60)i
     
     async def format_duration(self, duration_seconds):
         duration_hours, remainder = divmod(duration_seconds, 3600)
@@ -375,6 +377,18 @@ class DeviceStatusAnalyzer:
         start_time_current_day = f"{start_day} 00:00:00"
         end_time_current_day = f"{end_day} 23:59:59"
         return await self.calculate_energy_statistics(start_time_current_day, end_time_current_day)
+    
+    async def get_transition_of_day_range(self, start_day_difference=0, end_day_difference=0):
+        # # Calculate based on difference in day
+        # e.g 0 for current day 2 for last 2 days
+        start_day = datetime.date.today() - datetime.timedelta(days=start_day_difference)
+        end_day = datetime.date.today() - datetime.timedelta(days=end_day_difference)
+        start_time_current_day = f"{start_day} 00:00:00"
+        end_time_current_day = f"{end_day} 23:59:59"
+        print(start_time_current_day, end_time_current_day)
+        result =  await self.get_status_transitions(self.device_id, start_time_current_day, end_time_current_day)
+        
+        return result
     
     async def get_total_energy_statistics(self):    
         return await self.calculate_energy_statistics()
@@ -407,30 +421,46 @@ class DeviceStatusAnalyzer:
         return days_until_start_of_year
     
     async def get_statistics(self):
+        stats = {
+                    "device_id": self.device_id,
+                    "current_tariff": await self.get_device_tariff(self.device_id),
+                    "energy_statistics": 
+                    {
+                        "today": await self.get_energy_statistics_of_day_range(),
+                    },
+                    "status_statistics": 
+                    {
+                        "today": await self.get_statistics_of_day_range(),
+                    }                
+                }
+        result = await database.store_statistics(stats, os.environ['DEVICE_STATS_COLLECTION'])
+        return result
+    
+    async def get_aggregated_statistics(self):
         start_of_week = await self.get_day_difference_from_start_of_week()
         start_of_month = await self.get_day_difference_from_start_of_month()
-        start_of_year = await self.get_day_difference_from_start_of_year()
+        # start_of_year = await self.get_day_difference_from_start_of_year()
 
         stats = {
                     "device_id": self.device_id,
                     "current_tariff": await self.get_device_tariff(self.device_id),
                     "energy_statistics": 
                     {
-                        "day": await self.get_energy_statistics_of_day_range(),
+                        "today": await self.get_energy_statistics_of_day_range(),
                         "week": await self.get_energy_statistics_of_day_range(start_of_week),
                         "month": await self.get_energy_statistics_of_day_range(start_of_month),
-                        "year": await self.get_energy_statistics_of_day_range(start_of_year)
+                        # "year": await self.get_energy_statistics_of_day_range(start_of_year)
                     },
                     "status_statistics": 
                     {
-                        "day": await self.get_statistics_of_day_range(),
+                        "today": await self.get_statistics_of_day_range(),
                         "week": await self.get_statistics_of_day_range(start_of_week),
                         "month": await self.get_statistics_of_day_range(start_of_month),
-                        "year": await self.get_statistics_of_day_range(start_of_year)
+                        # "year": await self.get_statistics_of_day_range(start_of_year)
                     }                
                 }
         result = await database.store_statistics(stats, os.environ['DEVICE_STATS_COLLECTION'])
-        return result, stats['energy_statistics']['month']
+        return result
     
     # Function to convert the timestamp string to a datetime object
     def parse_timestamp(self, timestamp):
@@ -451,62 +481,7 @@ class DeviceStatusAnalyzer:
         avg_power = sum(power_values) / len(power_values)
 
         return round(min_power, 2), round(peak_power, 2), round(avg_power, 2)
-
-    # async def days_above_average(self, data, start_date, end_date):
-    #     start_datetime = self.parse_timestamp(start_date)
-    #     end_datetime = self.parse_timestamp(end_date)
-    #     total_days = (end_datetime - start_datetime).days + 1  # Include both start and end dates
-
-    #     power_values = []
-    #     date_entries = defaultdict(list)
-
-    #     for entry in data:
-    #         entry_timestamp = self.parse_timestamp(entry['timestamp'])
-    #         entry_date = entry_timestamp.date()
-
-    #         if start_datetime.date() <= entry_date <= end_datetime.date() and entry['online']:
-    #             power = round(float(entry['power']), 2)
-    #             power_values.append(power)
-    #             date_entries[entry_date].append((entry_timestamp, power))
-
-    #     if not power_values:
-    #         return {}
-
-    #     avg_power = round(sum(power_values) / len(power_values), 2)
-    #     above_average_hours = defaultdict(list)
-
-    #     for date in date_entries:
-    #         for hour in range(24):
-    #             hour_entries = [entry for entry in date_entries[date] if entry[0].hour == hour and entry[1] > avg_power]
-                
-    #             if hour_entries:
-    #                 hour_entries.sort(key=lambda x: x[0])
-    #                 total_duration = 0
-    #                 start_time = None
-    #                 power_values = []
-
-    #                 for i in range(len(hour_entries)):
-    #                     timestamp, power = hour_entries[i]
-    #                     if start_time is None:
-    #                         start_time = timestamp
-    #                     else:
-    #                         time_difference = timestamp - start_time
-    #                         duration_seconds = time_difference.total_seconds()
-    #                         total_duration += duration_seconds
-    #                         start_time = timestamp
-    #                     power_values.append(power)
-
-    #                 above_average_hours[date.strftime("%Y-%m-%d")].append({
-    #                     "hour": hour,
-    #                     "duration_seconds": total_duration,
-    #                     "power_values": round(sum(power_values) / len(power_values), 2),
-    #                     "avg_power": avg_power,
-    #                     "start_timestamp": hour_entries[0][0].strftime("%Y-%m-%d %H:%M:%S"),
-    #                     "end_timestamp": hour_entries[-1][0].strftime("%Y-%m-%d %H:%M:%S"),
-    #                     "entries": [entry[0].strftime("%Y-%m-%d %H:%M:%S") for entry in hour_entries]
-    #                 })
-
-    #     return above_average_hours
+    
     async def days_above_average(self, data, start_date, end_date):
         start_datetime = self.parse_timestamp(start_date)
         end_datetime = self.parse_timestamp(end_date)
@@ -555,7 +530,7 @@ class DeviceStatusAnalyzer:
                         "avg_power": avg_power,
                         "start_timestamp": hour_entries[0][0].strftime("%Y-%m-%d %H:%M:%S"),
                         "end_timestamp": hour_entries[-1][0].strftime("%Y-%m-%d %H:%M:%S"),
-                        "entries": [entry[0].strftime("%Y-%m-%d %H:%M:%S") for entry in hour_entries]
+                        # "entries": [entry[0].strftime("%Y-%m-%d %H:%M:%S") for entry in hour_entries]
                     })
 
         return above_average_hours

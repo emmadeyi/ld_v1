@@ -6,13 +6,13 @@ from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from DatabaseClass import MongoDBClass
 import get_device_auth_token 
-from run_request import send_post_request
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer
 import os
+from fastapi.security import HTTPBearer
 
 # Load environment variables from .env file
 load_dotenv()
@@ -132,6 +132,24 @@ async def remove_device(device_id):
     result =  await database.delete_device(device_id, device_info)
     return result
 
+security = HTTPBearer()
+
+@app.get("/device_token/{device_id}", response_model=Token)
+async def get_token(device_id: str):
+    device = await database.get_single_device(device_id, device_info)
+    if not await database.get_single_device(device_id, device_info):
+        raise HTTPException(
+            status_code=404, detail="Device not registered"
+        )
+    
+    if not device['active']:
+        raise HTTPException(
+            status_code=400, detail="Inactive device"
+        )
+
+    access_token = create_access_token(data={"sub": device['device_id']})
+    return {"access_token": access_token, "token_type": "bearer"}
+   
 # Register new device
 @app.post("/register/")
 async def register_device(device_id: str, tariff: float, app_id: str = None, app_secret: str = None,
@@ -191,40 +209,16 @@ async def get_all_devices():
         raise HTTPException(status_code=404, detail="No Device not found")
     return result
 
-# Get device bearer token
-# @app.get("/device_token/{device_id}")
-# async def get_device_token(device_id: str = Depends(get_device_token)):
-#     token = device_id
-#     return {"message": "Device Token Fetched", "token": token}
-
 # Get device tarrif
 @app.get("/device_tariff/{device_id}")
-async def get_device_tariff(device_id: str = Depends(get_device_tariff)):
+async def get_device_tariff(device_id: str = Depends(get_device_tariff), authorization: str = Depends(security)):
     tariff = device_id
     return {"message": "Device Tariff Fetched", "Tariff": tariff}
-
-@app.get("/device_token/{device_id}", response_model=Token)
-async def get_token(device_id: str):
-    device = await database.get_single_device(device_id, device_info)
-    if not await database.get_single_device(device_id, device_info):
-        raise HTTPException(
-            status_code=404, detail="Device not registered"
-        )
-    
-    if not device['active']:
-        raise HTTPException(
-            status_code=400, detail="Inactive device"
-        )
-
-    access_token = create_access_token(data={"sub": device['device_id']})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
 
 ################ Protected Routes
 # Get device tarrif
 @app.put("/update_device_tariff/")
-async def update_device_tariff(tariff: float, device: str = Depends(get_current_device)):
+async def update_device_tariff(tariff: float, device: str = Depends(get_current_device), authorization: str = Depends(security)):
     filter_query = {'device_id': device["device_id"]} 
     update_query = {"tariff": tariff}
     modified_data = await update_device_data(filter_query, update_query)
@@ -234,7 +228,7 @@ async def update_device_tariff(tariff: float, device: str = Depends(get_current_
 
 # Update device data
 @app.put("/update_device")
-async def update_device(tariff: float = None, active: float = None, request_token: str = None, refresh_token: str = None, notify_token = None, device: str = Depends(get_current_device)):
+async def update_device(tariff: float = None, active: float = None, request_token: str = None, refresh_token: str = None, notify_token = None, device: str = Depends(get_current_device), authorization: str = Depends(security)):
     filter_query = {'device_id': device["device_id"]} 
     update_query = {
         "tariff": tariff if tariff is not None else device["tariff"],
@@ -248,24 +242,14 @@ async def update_device(tariff: float = None, active: float = None, request_toke
         return JSONResponse({"previous_data": device,"updated_data": modified_data})
     raise HTTPException(status_code=404, detail=f"Device with ID {device} not found")
 
-# Refresh bearer token
-@app.put("/refresh_device_token/{device_id}")
-async def refresh_device_token(device_id: str = Depends(refresh_device_token)):
-    return {"message": "Device Token Refreshed", "token": device_id['bearer_token']}
-
 # Get Current Device
 @app.get("/device/")
-async def read_current_device(current_device: str = Depends(get_current_device)):
-    return JSONResponse(current_device)
-
-@app.get("/device_status")
-async def read_current_device(current_device: str = Depends(get_current_device)):
-    response_data, response_status = send_post_request(current_device)
-    return JSONResponse(response_data, response_status)
+async def read_current_device(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):
+    return current_device
 
 # Get Device Current Status
 @app.get("/device/current_status")
-async def read_device_data(current_device: str = Depends(get_current_device)):                
+async def read_device_data(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     last_updated_status_data = await analyzer.analyze_current_status()
     responseData = {
@@ -274,9 +258,33 @@ async def read_device_data(current_device: str = Depends(get_current_device)):
     }
     return JSONResponse(responseData)
 
+# Get Device response
+@app.get("/device/response")
+async def read_device_data(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
+    analyzer = DeviceStatusAnalyzer(current_device.device_id)  
+    last_updated_data = await analyzer.get_status_transitions(current_device.device_id)
+    responseData = {
+        "device_id": current_device.device_id,
+        "last_updated_data": last_updated_data,
+        "data_count": len(last_updated_data)
+    }
+    return JSONResponse(responseData)
+
+# Get Device response
+@app.get("/device/response/start/{start_day}/end/{end_day}")
+async def read_device_range_data(start_day: int, end_day: int = None, current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
+    analyzer = DeviceStatusAnalyzer(current_device.device_id)  
+    last_updated_data = await analyzer.get_transition_of_day_range(start_day, end_day)
+    responseData = {
+        "device_id": current_device.device_id,
+        "last_updated_data": last_updated_data,
+        "data_count": len(last_updated_data)
+    }
+    return JSONResponse(responseData)
+
 # Get Device Current Status History
 @app.get("/device/status/history")
-async def read_device_day_statistics(current_device: str = Depends(get_current_device)):                
+async def read_device_day_statistics(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     last_updated_status_data = await analyzer.analyze_status()
     responseData = {
@@ -287,7 +295,7 @@ async def read_device_day_statistics(current_device: str = Depends(get_current_d
 
 # Get Device Current Day Statistics
 @app.get("/device/current_day/statistics")
-async def read_device_day_statistics(current_device: str = Depends(get_current_device)):                
+async def read_device_day_statistics(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     last_updated_statistics = await analyzer.get_statistics_of_day_range()
     responseData = {
@@ -298,7 +306,7 @@ async def read_device_day_statistics(current_device: str = Depends(get_current_d
 
 # Get Device Current Day Power Usage
 @app.get("/device/current_day/power_usage")
-async def read_device_day_power_usage(current_device: str = Depends(get_current_device)):                
+async def read_device_day_power_usage(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     last_updated_power_usage = await analyzer.get_energy_statistics_of_day_range()
     responseData = {
@@ -309,7 +317,7 @@ async def read_device_day_power_usage(current_device: str = Depends(get_current_
 
 # Get Device Current Week Statistics
 @app.get("/device/current_week/statistics")
-async def read_device_week_statistics(current_device: str = Depends(get_current_device)):                
+async def read_device_week_statistics(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id) 
     start_of_week = await analyzer.get_day_difference_from_start_of_week() 
     last_updated_statistics = await analyzer.get_statistics_of_day_range(start_of_week)
@@ -321,7 +329,7 @@ async def read_device_week_statistics(current_device: str = Depends(get_current_
 
 # Get Device Current Week Power Usage
 @app.get("/device/current_week/power_usage")
-async def read_device_week_power_usage(current_device: str = Depends(get_current_device)):                
+async def read_device_week_power_usage(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     start_of_week = await analyzer.get_day_difference_from_start_of_week()
     last_updated_power_usage = await analyzer.get_energy_statistics_of_day_range(start_of_week)
@@ -333,7 +341,7 @@ async def read_device_week_power_usage(current_device: str = Depends(get_current
 
 # Get Device Current month Statistics
 @app.get("/device/current_month/statistics")
-async def read_device_month_statistics(current_device: str = Depends(get_current_device)):                
+async def read_device_month_statistics(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id) 
     start_of_month = await analyzer.get_day_difference_from_start_of_month() 
     last_updated_statistics = await analyzer.get_statistics_of_day_range(start_of_month)
@@ -345,7 +353,7 @@ async def read_device_month_statistics(current_device: str = Depends(get_current
 
 # Get Device Current month Power Usage
 @app.get("/device/current_month/power_usage")
-async def read_device_month_power_usage(current_device: str = Depends(get_current_device)):                
+async def read_device_month_power_usage(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     start_of_month = await analyzer.get_day_difference_from_start_of_month()
     last_updated_power_usage = await analyzer.get_energy_statistics_of_day_range(start_of_month)
@@ -357,7 +365,7 @@ async def read_device_month_power_usage(current_device: str = Depends(get_curren
 
 # Get Device Current year Statistics
 @app.get("/device/current_year/statistics")
-async def read_device_year_statistics(current_device: str = Depends(get_current_device)):                
+async def read_device_year_statistics(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id) 
     start_of_year = await analyzer.get_day_difference_from_start_of_year() 
     last_updated_statistics = await analyzer.get_statistics_of_day_range(start_of_year)
@@ -369,7 +377,7 @@ async def read_device_year_statistics(current_device: str = Depends(get_current_
 
 # Get Device Current year Power Usage
 @app.get("/device/current_year/power_usage")
-async def read_device_year_power_usage(current_device: str = Depends(get_current_device)):                
+async def read_device_year_power_usage(current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     start_of_year = await analyzer.get_day_difference_from_start_of_year()
     last_updated_power_usage = await analyzer.get_energy_statistics_of_day_range(start_of_year)
@@ -381,7 +389,7 @@ async def read_device_year_power_usage(current_device: str = Depends(get_current
 
 # Get Device Current day_diff Statistics
 @app.get("/device/day_diff/{day_diff}/statistics")
-async def read_device_day_diff_statistics(day_diff: int, current_device: str = Depends(get_current_device)):                
+async def read_device_day_diff_statistics(day_diff: int, current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id) 
     last_updated_statistics = await analyzer.get_statistics_of_day_range(day_diff)
     responseData = {
@@ -392,7 +400,7 @@ async def read_device_day_diff_statistics(day_diff: int, current_device: str = D
 
 # Get Device Current day_diff Power Usage
 @app.get("/device/day_diff/{day_diff}/power_usage")
-async def read_device_day_diff_power_usage(day_diff: int, current_device: str = Depends(get_current_device)):                
+async def read_device_day_diff_power_usage(day_diff: int, current_device: str = Depends(get_current_device), authorization: str = Depends(security)):                
     analyzer = DeviceStatusAnalyzer(current_device.device_id)  
     last_updated_power_usage = await analyzer.get_energy_statistics_of_day_range(day_diff)
     responseData = {
@@ -403,9 +411,9 @@ async def read_device_day_diff_power_usage(day_diff: int, current_device: str = 
 
 # Get Device Aggregated Stats
 @app.get("/device/aggregated/statistics")
-async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
+async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device), authorization: str = Depends(security)): 
     stats = await database.get_statistics_record(os.environ['DEVICE_STATS_COLLECTION'], current_device.device_id)
-    bg.add_task(get_statistics, current_device.device_id)
+    bg.add_task(get_aggregated_statistics, current_device.device_id)
     if stats:
         return JSONResponse({"device_id": stats['device_id'],
                              "tariff": stats['current_tariff'], 
@@ -414,9 +422,9 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
     return JSONResponse({"data": {}, "Error": f""})
     
 @app.get("/device/aggregated/power_usage")
-async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device)): 
+async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str = Depends(get_current_device), authorization: str = Depends(security)): 
     stats = await database.get_statistics_record(os.environ['DEVICE_STATS_COLLECTION'], current_device.device_id)
-    bg.add_task(get_statistics, current_device.device_id)
+    bg.add_task(get_aggregated_statistics, current_device.device_id)
     if stats:
         return JSONResponse({"device_id": stats['device_id'],
                              "tariff": stats['current_tariff'], 
@@ -425,7 +433,7 @@ async def read_device_aggregated_stats(bg: BackgroundTasks, current_device: str 
     return JSONResponse({"data": {}, "Error": f""})
 
 @app.get("/activate_device/{action}")
-async def start_api_call(action: str, background_tasks: BackgroundTasks, device: str = Depends(get_current_device)):    
+async def start_api_call(action: str, background_tasks: BackgroundTasks, device: str = Depends(get_current_device), authorization: str = Depends(security)):    
     if action == '1':        
         filter_query = {'device_id': device.device_id} 
         update_query = {
@@ -458,7 +466,7 @@ async def delete_device(device_id: str):
     else:
         raise HTTPException(status_code=404, detail="Device not found")
 
-async def get_statistics(device_id):    
+async def get_aggregated_statistics(device_id):    
     analyzer = DeviceStatusAnalyzer(device_id)
-    result = await analyzer.get_statistics()
+    result = await analyzer.get_aggregated_statistics()
     return result

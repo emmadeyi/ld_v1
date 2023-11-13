@@ -39,8 +39,13 @@ async def run_device_request(device):
 
     current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
     print(f"..............Processing #{device['device_id']}...........{current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')}")
-    api_response, status_code = await send_post_request(device)
-    logged_data = await log_device_data(api_response, device['device_id'])
+    api_response, status_code = await send_post_request(device)    
+    print(f"{device['device_id']} status - {status_code}")
+    # if api_response is NA, use previous data
+    if result:
+        logged_data = await log_device_data(api_response, device['device_id'], result)
+    else:
+        logged_data = await log_device_data(api_response, device['device_id'])
 
     if logged_data and logged_data.get('online') is not None:
         if logged_data['online'] != previous_status:
@@ -79,16 +84,27 @@ async def send_post_request(device):
         except httpx.RequestError as e:
             return {"error": f"Error: {e}"}, 500
 
-async def log_device_data(device_data, device_id=None):
-    try:        
+async def log_device_data(device_data, device_id=None, prev_data=None):
+    try:
         current_time_gmt_plus_1 = datetime.datetime.now(gmt_plus_1_timezone)
         timestamp = current_time_gmt_plus_1.strftime('%Y-%m-%d %H:%M:%S')
         device_info = device_data.get("data", {}).get("thingList", [{}])[0].get("itemData", {})
-        device_id = device_info.get("deviceid", "N/A")
-        online = device_info.get("online", "N/A")
-        power = device_info.get("params", {}).get("power", "N/A")
-        voltage = device_info.get("params", {}).get("voltage", "N/A")
-        current = device_info.get("params", {}).get("current", "N/A")
+        if device_info.get("online", 'N/A') == 'N/A':
+            print(f"No response from device {device_id}, replacing data with previous data")
+        if prev_data:        
+            device_id = device_info.get("deviceid", prev_data[0]['device_id'])
+            online = device_info.get("online", prev_data[0]['online'])
+            power = device_info.get("params", {}).get("power", prev_data[0]['power'])
+            voltage = device_info.get("params", {}).get("voltage", prev_data[0]['voltage'])
+            current = device_info.get("params", {}).get("current", prev_data[0]['current'])
+        else:
+            device_id = device_info.get("deviceid", 'N/A')
+            online = device_info.get("online", 'N/A')
+            power = device_info.get("params", {}).get("power", 'N/A')
+            voltage = device_info.get("params", {}).get("voltage", 'N/A')
+            current = device_info.get("params", {}).get("current", 'N/A')
+
+
         data_dict = {
             "timestamp": timestamp,
             "device_id": device_id,
@@ -96,7 +112,7 @@ async def log_device_data(device_data, device_id=None):
             "power": power,
             "voltage": voltage,
             "current": current,
-        }
+        }            
 
         result = await database.insert_device_response(data_dict, device_response_data)
         print(f"#{device_id} Data Logged.\n{result}")
